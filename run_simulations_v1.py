@@ -40,6 +40,9 @@ def _create_experiment_params():
 
 
 def _run_experiment(experiment_params: ExperimentParametersV1):
+    if not ExperimentConstants.result_dir.exists():
+        ExperimentConstants.result_dir.mkdir(parents=True, exist_ok=True)
+
     save_dir = ExperimentConstants.result_dir / experiment_params.to_file_name()
     if save_dir.exists():
         sim_result = ActiveLearningMultipleSimulationResult.from_json(save_dir)
