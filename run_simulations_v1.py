@@ -24,7 +24,7 @@ class ExperimentParametersV1(BaseModel):
 def _create_experiment_params():
     experiment_params = []
     dataset_ids = ALSimulatorDataset.all()
-    embedder_names = [CommonEmbedder.ONE_HOT_ENCODING.name, CommonEmbedder.ProtT5.name]
+    embedder_names = [CommonEmbedder.ONE_HOT_ENCODING.value, CommonEmbedder.ProtT5.value]
     model_types = [ActiveLearningModelType.GAUSSIAN_PROCESS, ActiveLearningModelType.FNN_MCD,
                   ActiveLearningModelType.RANDOM]
     for dataset_id in dataset_ids:
@@ -35,7 +35,7 @@ def _create_experiment_params():
     # TODO DEBUG
     #experiment_params = [
     #    ExperimentParametersV1(dataset_id=ALSimulatorDataset.AMYLASE, model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
-    #                           embedder_name="one_hot_encoding")]
+    #                           embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)]
     return experiment_params
 
 
