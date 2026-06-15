@@ -71,23 +71,23 @@ def _load_selected(disk_choices: List[str], uploads) -> Dict[str, ActiveLearning
 def _render_aggregate(multi: ActiveLearningMultipleSimulationResult) -> None:
     charts = multi.build_altair_charts()
     st.subheader("Overall performance summary")
-    st.altair_chart(charts["performance_summary"], use_container_width=True)
+    st.altair_chart(charts["performance_summary"].interactive(), use_container_width=True)
     st.subheader("Target discovery progress")
-    st.altair_chart(charts["mean_cumulative_successes"], use_container_width=True)
+    st.altair_chart(charts["mean_cumulative_successes"].interactive(), use_container_width=True)
     st.subheader("Model performance evolution")
-    st.altair_chart(charts["mean_metric_evolution"], use_container_width=True)
+    st.altair_chart(charts["mean_metric_evolution"].interactive(), use_container_width=True)
 
 
 def _render_single(ssr: ActiveLearningSingleSimulationResult) -> None:
     charts = ssr.build_altair_charts()
     col_left, col_right = st.columns(2)
     with col_left:
-        st.altair_chart(charts["metric_evolution"], use_container_width=True)
-        st.altair_chart(charts["consecutive_failures"], use_container_width=True)
+        st.altair_chart(charts["metric_evolution"].interactive(), use_container_width=True)
+        st.altair_chart(charts["consecutive_failures"].interactive(), use_container_width=True)
     with col_right:
-        st.altair_chart(charts["target_successes"], use_container_width=True)
+        st.altair_chart(charts["target_successes"].interactive(), use_container_width=True)
         if "suggested_labels" in charts:
-            st.altair_chart(charts["suggested_labels"], use_container_width=True)
+            st.altair_chart(charts["suggested_labels"].interactive(), use_container_width=True)
 
     with st.expander("Raw stats"):
         sr = ssr.simulation_result
@@ -111,7 +111,7 @@ def _render_cross_experiment(loaded: Dict[str, ActiveLearningMultipleSimulationR
             for ssr in multi.simulation_results
         ]
         metric_inputs[name] = [
-            list(ssr.simulation_result.iteration_metrics_total or [])
+            [m.mean for m in (ssr.simulation_result.iteration_metrics_total or [])]
             for ssr in multi.simulation_results
         ]
         targets[name] = multi.simulation_results[0].al_simulation_config.convergence_config.target_successes
@@ -127,12 +127,12 @@ def _render_cross_experiment(loaded: Dict[str, ActiveLearningMultipleSimulationR
 
     st.subheader("Cumulative target successes — mean per experiment")
     st.altair_chart(
-        al_plots.build_cross_experiment_cumulative_chart(cum_inputs, targets),
+        al_plots.build_cross_experiment_cumulative_chart(cum_inputs, targets).interactive(),
         use_container_width=True,
     )
     st.subheader(f"Model performance ({metric_name}) — mean per experiment")
     st.altair_chart(
-        al_plots.build_cross_experiment_metric_chart(metric_inputs, metric_name),
+        al_plots.build_cross_experiment_metric_chart(metric_inputs, metric_name).interactive(),
         use_container_width=True,
     )
 

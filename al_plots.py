@@ -100,7 +100,7 @@ def build_metric_evolution_chart(
 
     return alt.layer(*layers).properties(
         title="Metric Comparison with Success Markers", height=320
-    ).interactive()
+    )
 
 
 def build_target_successes_chart(iteration_target_successes: List[int]) -> alt.LayerChart:
@@ -144,7 +144,7 @@ def build_target_successes_chart(iteration_target_successes: List[int]) -> alt.L
     )
     return alt.layer(bars, line).properties(
         title="Target Successes Over Iterations", height=320
-    ).interactive()
+    )
 
 
 def build_consecutive_failures_chart(
@@ -179,7 +179,7 @@ def build_consecutive_failures_chart(
 
     return alt.layer(*layers).properties(
         title="Consecutive Failures Tracking", height=320
-    ).interactive()
+    )
 
 
 def build_suggested_labels_chart(
@@ -391,7 +391,7 @@ def build_mean_cumulative_successes_chart(
 
     return alt.layer(individual, band, mean_line, target_rule).properties(
         title="Target Discovery Progress", height=360
-    ).interactive()
+    )
 
 
 def build_mean_metric_evolution_chart(
@@ -472,7 +472,7 @@ def build_mean_metric_evolution_chart(
 
     return alt.layer(band, mean_line, overlay).properties(
         title=f"Model Performance Evolution ({metric_name})", height=360
-    ).interactive()
+    )
 
 
 def build_cross_experiment_cumulative_chart(
@@ -556,7 +556,7 @@ def build_cross_experiment_cumulative_chart(
 
     return alt.layer(*layers).properties(
         title="Cross-Experiment: Cumulative Target Successes (mean)", height=380
-    ).interactive()
+    )
 
 
 def build_cross_experiment_metric_chart(
@@ -619,4 +619,4 @@ def build_cross_experiment_metric_chart(
 
     return alt.layer(band, line).properties(
         title=f"Cross-Experiment: {metric_name} (mean)", height=380
-    ).interactive()
+    )

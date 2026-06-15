@@ -53,7 +53,7 @@ def _run_experiment(experiment_params: ExperimentParametersV1):
                                            embedder_name=experiment_params.embedder_name,
                                            n_rounds=ExperimentConstants.n_rounds)
         sim_result.save(save_dir)
-    sim_result.visualize()
+    sim_result.visualize(save_path=save_dir.with_suffix(".png"))
 
 
 def main():
