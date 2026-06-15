@@ -48,6 +48,7 @@ def _run_experiment(experiment_params: ExperimentParametersV1):
         sim_result = ActiveLearningMultipleSimulationResult.from_json(save_dir)
     else:
         al_simulator = get_simulator(experiment_params.dataset_id)
+        print(f"Running simulation for {experiment_params}..")
         sim_result = al_simulator.simulate(model_type=experiment_params.model_type,
                                            embedder_name=experiment_params.embedder_name,
                                            n_rounds=ExperimentConstants.n_rounds)

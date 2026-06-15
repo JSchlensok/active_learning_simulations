@@ -126,8 +126,8 @@ class ActiveLearningSingleSimulationResult:
         ]
         n_rounds = max(n_rounds_candidates) if any(n_rounds_candidates) else 0
 
-        iteration_metrics_total = (result.iteration_metrics_total or [])[:n_rounds]
-        iteration_metrics_suggestions = (result.iteration_metrics_suggestions or [])[:n_rounds]
+        iteration_metrics_total = [m.mean for m in (result.iteration_metrics_total or [])[:n_rounds]]
+        iteration_metrics_suggestions = [m.mean for m in (result.iteration_metrics_suggestions or [])[:n_rounds]]
         iteration_target_successes = (result.iteration_target_successes or [])[:n_rounds]
         iteration_consecutive_failures = (result.iteration_consecutive_failures or [])[:n_rounds]
         iteration_results = (result.iteration_results or [])[:n_rounds]
@@ -138,14 +138,17 @@ class ActiveLearningSingleSimulationResult:
         # 1. Metrics Evolution (Total vs Suggestions)
         ax1 = plt.subplot(3, 3, 1)
         if iteration_metrics_total:
-            plt.plot(iterations[:len(iteration_metrics_total)], iteration_metrics_total, marker='o', label='All Data', linewidth=2)
+            plt.plot(iterations[:len(iteration_metrics_total)], iteration_metrics_total, marker='o', label='All Data',
+                     linewidth=2)
         if iteration_metrics_suggestions:
-            plt.plot(iterations[:len(iteration_metrics_suggestions)], iteration_metrics_suggestions, marker='s', label='Suggestions', linewidth=2)
+            plt.plot(iterations[:len(iteration_metrics_suggestions)], iteration_metrics_suggestions, marker='s',
+                     label='Suggestions', linewidth=2)
 
         # Overlay success markers (use aligned lists)
         success_iterations = [i + 1 for i, s in enumerate(iteration_target_successes) if s > 0]
         if success_iterations and iteration_metrics_total:
-            success_metrics = [iteration_metrics_total[i - 1] for i in success_iterations if (i - 1) < len(iteration_metrics_total)]
+            success_metrics = [iteration_metrics_total[i - 1] for i in success_iterations if
+                               (i - 1) < len(iteration_metrics_total)]
             plt.scatter(success_iterations[:len(success_metrics)], success_metrics, color='gold', s=200,
                         marker='*', edgecolors='black', linewidths=1.5,
                         label='Target Found', zorder=5)
@@ -159,9 +162,11 @@ class ActiveLearningSingleSimulationResult:
         ax2 = plt.subplot(3, 3, 2)
         cumulative_successes = np.cumsum(iteration_target_successes) if iteration_target_successes else np.array([])
         if cumulative_successes.size:
-            plt.plot(iterations[:len(cumulative_successes)], cumulative_successes, marker='o', color='green', linewidth=2, label='Cumulative')
+            plt.plot(iterations[:len(cumulative_successes)], cumulative_successes, marker='o', color='green',
+                     linewidth=2, label='Cumulative')
         if iteration_target_successes:
-            plt.bar(iterations[:len(iteration_target_successes)], iteration_target_successes, alpha=0.3, color='lightgreen', label='Per Iteration')
+            plt.bar(iterations[:len(iteration_target_successes)], iteration_target_successes, alpha=0.3,
+                    color='lightgreen', label='Per Iteration')
         plt.xlabel('Iteration')
         plt.ylabel('Target Successes')
         plt.title('Target Successes Over Iterations')
@@ -231,17 +236,79 @@ class ActiveLearningSingleSimulationResult:
     def _print_stats(result: ActiveLearningSimulationResult):
         print(f"Simulation campaign stats:")
         print(f"Simulation stop reasons: {result.stop_reasons}")
-        print(f"Total number of iterations: {len(result.iteration_results)}")
+        print(f"Total number of iterations: {len(result.iteration_results or [])}")
         print(f"Metrics for all masked data points per iteration: {result.iteration_metrics_total}")
         print(f"Metrics for suggested data points per iteration: {result.iteration_metrics_suggestions}")
         print(f"Target successes over iterations: {result.iteration_target_successes}")
         filtered_results_suggestions = [[sugg for sugg in res.results if sugg.entity_id in res.suggestions][0]
-                                        for res in result.iteration_results]
+                                        for res in result.iteration_results or []]
         print(f"Iteration result for top suggestion: {filtered_results_suggestions}")
 
     def visualize(self):
         self._print_stats(self.simulation_result)
         self._visualize_results()
+
+    def label(self) -> str:
+        seed = self.al_campaign_config.seed
+        model_type = getattr(self.al_campaign_config.model_type, "value",
+                             self.al_campaign_config.model_type)
+        return f"seed={seed} | {model_type} | success={self.is_success()}"
+
+    def build_altair_charts(self):
+        """Build interactive Altair charts mirroring `_visualize_results()`.
+
+        Returns a dict keyed by chart name. The 'suggested_labels' key is
+        only present for DISCRETE optimization mode.
+        """
+        import al_plots
+
+        result = self.simulation_result
+        is_discrete = self.al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE
+        metric_name = "Accuracy" if is_discrete else "RMSE"
+
+        n_rounds_candidates = [
+            len(getattr(result, "iteration_results", []) or []),
+            len(getattr(result, "iteration_metrics_total", []) or []),
+            len(getattr(result, "iteration_metrics_suggestions", []) or []),
+            len(getattr(result, "iteration_target_successes", []) or []),
+            len(getattr(result, "iteration_consecutive_failures", []) or []),
+        ]
+        n_rounds = max(n_rounds_candidates) if any(n_rounds_candidates) else 0
+
+        iteration_metrics_total = [m.mean for m in (result.iteration_metrics_total or [])[:n_rounds]]
+        iteration_metrics_suggestions = [m.mean for m in (result.iteration_metrics_suggestions or [])[:n_rounds]]
+        iteration_target_successes = (result.iteration_target_successes or [])[:n_rounds]
+        iteration_consecutive_failures = (result.iteration_consecutive_failures or [])[:n_rounds]
+        iteration_results = (result.iteration_results or [])[:n_rounds]
+
+        charts = {
+            "metric_evolution": al_plots.build_metric_evolution_chart(
+                iteration_metrics_total=list(iteration_metrics_total),
+                iteration_metrics_suggestions=list(iteration_metrics_suggestions),
+                iteration_target_successes=list(iteration_target_successes),
+                metric_name=metric_name,
+            ),
+            "target_successes": al_plots.build_target_successes_chart(
+                iteration_target_successes=list(iteration_target_successes),
+            ),
+            "consecutive_failures": al_plots.build_consecutive_failures_chart(
+                iteration_consecutive_failures=list(iteration_consecutive_failures),
+                stop_reasons=list(result.stop_reasons or []),
+            ),
+        }
+
+        if is_discrete:
+            id2label = {dp.seq_id: dp.label for dp in self.al_simulation_config.simulation_data}
+            iteration_suggestions = [list(ir.suggestions) for ir in iteration_results]
+            unique_labels = sorted({dp.label for dp in self.al_simulation_config.simulation_data})
+            charts["suggested_labels"] = al_plots.build_suggested_labels_chart(
+                iteration_suggestions=iteration_suggestions,
+                id2label=id2label,
+                unique_labels=unique_labels,
+                optimization_targets=self.al_campaign_config.discrete_targets,
+            )
+
+        return charts
 
 
 class ActiveLearningMultipleSimulationResult:
@@ -293,7 +360,7 @@ class ActiveLearningMultipleSimulationResult:
         fig = plt.figure(figsize=(18, 6))
 
         # Prepare common data
-        max_iterations = max([len(ssr.simulation_result.iteration_metrics_total)
+        max_iterations = max([len(ssr.simulation_result.iteration_metrics_total or [])
                               for ssr in self.simulation_results])
         iterations = np.arange(1, max_iterations + 1)
 
@@ -402,7 +469,7 @@ class ActiveLearningMultipleSimulationResult:
         # Pad metrics data
         metrics_total_padded = []
         for ssr in self.simulation_results:
-            metrics_total = ssr.simulation_result.iteration_metrics_total
+            metrics_total = [m.mean for m in ssr.simulation_result.iteration_metrics_total]
             metrics_total_padded.append(metrics_total + [np.nan] * (max_iterations - len(metrics_total)))
 
         metrics_total_array = np.array(metrics_total_padded)
@@ -417,9 +484,9 @@ class ActiveLearningMultipleSimulationResult:
         worst_iters = range(1, len(worst_result.simulation_result.iteration_metrics_total) + 1)
 
         # Plot best and worst in background
-        ax3.plot(worst_iters, worst_result.simulation_result.iteration_metrics_total,
+        ax3.plot(worst_iters, [m.mean for m in worst_result.simulation_result.iteration_metrics_total],
                  marker='v', label='Worst Run', linewidth=2, color='#e74c3c', alpha=0.6, linestyle='--')
-        ax3.plot(best_iters, best_result.simulation_result.iteration_metrics_total,
+        ax3.plot(best_iters, [m.mean for m in best_result.simulation_result.iteration_metrics_total],
                  marker='^', label='Best Run', linewidth=2, color='#2ecc71', alpha=0.6, linestyle='--')
 
         # Plot mean with confidence band (emphasize this)
@@ -449,10 +516,93 @@ class ActiveLearningMultipleSimulationResult:
     def save(self, path: Path):
         """Save simulation results to JSON file"""
         with open(path, 'w') as f:
-            # Convert each simulation result to JSON
-            json_results = [json.loads(result.model_dump_json()) for result in self.simulation_results]
+            json_results = []
+            for result in self.simulation_results:
+                # Parse the result into dict structure
+                result_dict = json.loads(result.model_dump_json())
+
+                # Remove simulation_data from al_simulation_config to reduce file size
+                if 'al_simulation_config' in result_dict and 'simulation_data' in result_dict['al_simulation_config']:
+                    result_dict['al_simulation_config']['simulation_data'] = [
+                        SequenceData(seq_id="Dummy1", seq="MDUMMY").model_dump(),
+                        SequenceData(seq_id="Dummy2", seq="ADUMMY").model_dump(),
+                        SequenceData(seq_id="Dummy3", seq="GDUMMY").model_dump()
+                    ]
+
+                json_results.append(result_dict)
+
             # Write the JSON with proper formatting
             json.dump(json_results, f, indent=4)
+
+    def build_altair_charts(self):
+        """Build interactive Altair charts mirroring `_visualize()`.
+
+        Returns a dict with keys: 'performance_summary',
+        'mean_cumulative_successes', 'mean_metric_evolution'.
+        """
+        import al_plots
+
+        is_discrete = self.simulation_results[
+                          0].al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE
+        metric_name = "Accuracy" if is_discrete else "RMSE"
+
+        per_sim_target_successes = [
+            list(ssr.simulation_result.iteration_target_successes or [])
+            for ssr in self.simulation_results
+        ]
+        per_sim_metrics_total = [
+            [m.mean for m in ssr.simulation_result.iteration_metrics_total or []]
+            for ssr in self.simulation_results
+        ]
+        per_sim_is_success = [ssr.is_success() for ssr in self.simulation_results]
+
+        target_threshold = self.simulation_results[0].al_simulation_config.convergence_config.target_successes
+        max_iterations = max((len(m) for m in per_sim_metrics_total), default=0)
+        success_count = sum(1 for s in per_sim_is_success if s)
+
+        convergence_iterations, _, _ = al_plots._compute_convergence_stats(
+            per_sim_target_successes=per_sim_target_successes,
+            target_successes_threshold=target_threshold,
+        )
+
+        best = self.get_best_simulation()
+        worst = self.get_worst_simulation()
+
+        return {
+            "performance_summary": al_plots.build_performance_summary_chart(
+                success_count=success_count,
+                total_runs=len(self.simulation_results),
+                convergence_iterations=convergence_iterations,
+                max_iterations=max_iterations,
+            ),
+            "mean_cumulative_successes": al_plots.build_mean_cumulative_successes_chart(
+                per_sim_target_successes=per_sim_target_successes,
+                per_sim_is_success=per_sim_is_success,
+                target_threshold=target_threshold,
+            ),
+            "mean_metric_evolution": al_plots.build_mean_metric_evolution_chart(
+                per_sim_metrics_total=per_sim_metrics_total,
+                best_run_metrics=[m.mean for m in best.simulation_result.iteration_metrics_total or []],
+                worst_run_metrics=[m.mean for m in worst.simulation_result.iteration_metrics_total or []],
+                metric_name=metric_name,
+            ),
+        }
+
+    def summary(self) -> dict:
+        """Return a small dict of summary values for the dashboard header."""
+        first = self.simulation_results[0]
+        return {
+            "embedder_name": first.al_campaign_config.embedder_name,
+            "model_type": getattr(first.al_campaign_config.model_type, "value",
+                                  first.al_campaign_config.model_type),
+            "optimization_mode": getattr(first.al_campaign_config.optimization_mode, "value",
+                                         first.al_campaign_config.optimization_mode),
+            "n_simulations": len(self.simulation_results),
+            "n_successful": sum(1 for ssr in self.simulation_results if ssr.is_success()),
+            "target_successes_threshold": first.al_simulation_config.convergence_config.target_successes,
+            "is_discrete": first.al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE,
+            "discrete_targets": first.al_campaign_config.discrete_targets,
+        }
 
 
 class ActiveLearningSimulationComparer:
