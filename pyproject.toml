@@ -9,10 +9,10 @@ dependencies = [
     "pandas>=2.2",
     "streamlit>=1.36",
     "vl-convert-python>=1.6",
-    "biocentral-api",# @ git+https://github.com/biocentral/biocentral_api.git@0b749e84080540239e33841bff8698364c7c1c32#subdirectory=python",
+    "biocentral-api@ git+https://github.com/biocentral/biocentral_api.git@48171f95054578e61be9dc5d4999c53811474cd1#subdirectory=python",
     "biotrainer-core @ git+https://github.com/biocentral/biotrainer.git@a51209234e133310eb5373099cfb1d8cf7ed033a#subdirectory=biotrainer-core",
 ]
 
 [tool.uv.sources]
-biocentral-api = { path = "../biocentral_api/python", editable = true }
+#biocentral-api = { path = "../biocentral_api/python", editable = true }
 #biotrainer-core = { path = "../biotrainerFork/biotrainer-core", editable = true }
