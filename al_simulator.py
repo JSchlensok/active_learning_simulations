@@ -81,6 +81,9 @@ class ActiveLearningSingleSimulationResult:
         self.al_simulation_config = al_simulation_config
         self.simulation_result = simulation_result
 
+    def get_total_number_of_suggestions(self):
+        return sum([len(it_res.suggestions) for it_res in self.simulation_result.iteration_results])
+
     def model_dump_json(self):
         """Serialize to JSON string"""
         return json.dumps({
@@ -231,6 +234,15 @@ class ActiveLearningMultipleSimulationResult:
     def get_worst_simulation(self):
         return min(self.simulation_results, key=lambda ssr: ssr.simulation_result.iteration_target_successes)
 
+    def get_aggregated_hits(self):
+        return sum([sum(ssr.simulation_result.iteration_target_successes) for ssr in self.simulation_results])
+
+    def __get_aggreged_unique_hits(self):
+        raise NotImplementedError  # TODO Needs to use the simulation dataset
+
+    def get_aggregated_number_of_suggestions(self):
+        return sum([ssr.get_total_number_of_suggestions() for ssr in self.simulation_results])
+
     def _percent_successful(self):
         return sum([1 for ssr in self.simulation_results if ssr.is_success()]) / len(self.simulation_results) * 100
 
@@ -267,27 +279,6 @@ class ActiveLearningMultipleSimulationResult:
         print("Visualizing best simulation...")
         self.get_best_simulation().visualize(save_path=best_path)
         return save_path
-
-    def save(self, path: Path):
-        """Save simulation results to JSON file"""
-        with open(path, 'w') as f:
-            json_results = []
-            for result in self.simulation_results:
-                # Parse the result into dict structure
-                result_dict = json.loads(result.model_dump_json())
-
-                # Remove simulation_data from al_simulation_config to reduce file size
-                if 'al_simulation_config' in result_dict and 'simulation_data' in result_dict['al_simulation_config']:
-                    result_dict['al_simulation_config']['simulation_data'] = [
-                        SequenceData(seq_id="Dummy1", seq="MDUMMY").model_dump(),
-                        SequenceData(seq_id="Dummy2", seq="ADUMMY").model_dump(),
-                        SequenceData(seq_id="Dummy3", seq="GDUMMY").model_dump()
-                    ]
-
-                json_results.append(result_dict)
-
-            # Write the JSON with proper formatting
-            json.dump(json_results, f, indent=4)
 
     def build_altair_charts(self):
         """Build interactive Altair charts mirroring `_visualize()`.
@@ -358,6 +349,27 @@ class ActiveLearningMultipleSimulationResult:
             "is_discrete": first.al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE,
             "discrete_targets": first.al_campaign_config.discrete_targets,
         }
+
+    def save(self, path: Path):
+        """Save simulation results to JSON file"""
+        with open(path, 'w') as f:
+            json_results = []
+            for result in self.simulation_results:
+                # Parse the result into dict structure
+                result_dict = json.loads(result.model_dump_json())
+
+                # Remove simulation_data from al_simulation_config to reduce file size
+                if 'al_simulation_config' in result_dict and 'simulation_data' in result_dict['al_simulation_config']:
+                    result_dict['al_simulation_config']['simulation_data'] = [
+                        SequenceData(seq_id="Dummy1", seq="MDUMMY").model_dump(),
+                        SequenceData(seq_id="Dummy2", seq="ADUMMY").model_dump(),
+                        SequenceData(seq_id="Dummy3", seq="GDUMMY").model_dump()
+                    ]
+
+                json_results.append(result_dict)
+
+            # Write the JSON with proper formatting
+            json.dump(json_results, f, indent=4)
 
 
 class ActiveLearningSimulationComparer:

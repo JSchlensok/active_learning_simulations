@@ -71,6 +71,11 @@ def _load_selected(disk_choices: List[str], uploads) -> Dict[str, ActiveLearning
 def _render_aggregate(multi: ActiveLearningMultipleSimulationResult) -> None:
     charts = multi.build_altair_charts()
     st.subheader("Overall performance summary")
+
+    cols = st.columns(2)
+    cols[0].metric("Total number of hits", multi.get_aggregated_hits())
+    cols[1].metric("Total number of suggestions", multi.get_aggregated_number_of_suggestions())
+
     st.altair_chart(charts["performance_summary"].interactive(), use_container_width=True)
     st.subheader("Target discovery progress")
     st.altair_chart(charts["mean_cumulative_successes"].interactive(), use_container_width=True)
@@ -79,6 +84,12 @@ def _render_aggregate(multi: ActiveLearningMultipleSimulationResult) -> None:
 
 
 def _render_single(ssr: ActiveLearningSingleSimulationResult) -> None:
+    stop_reasons = ssr.simulation_result.stop_reasons or ["None"]
+    cols_row1 = st.columns(2)
+    cols_row1[0].metric("Seed", ssr.al_campaign_config.seed)
+    cols_row1[1].metric("Success", ssr.is_success())
+    st.metric("Primary Stop Reason", stop_reasons[0])
+
     charts = ssr.build_altair_charts()
     col_left, col_right = st.columns(2)
     with col_left:
@@ -91,7 +102,7 @@ def _render_single(ssr: ActiveLearningSingleSimulationResult) -> None:
 
     with st.expander("Raw stats"):
         sr = ssr.simulation_result
-        st.markdown(f"- **Stop reasons:** {sr.stop_reasons}")
+        st.markdown(f"- **Stop reasons:** {stop_reasons}")
         st.markdown(f"- **Total iterations:** {len(sr.iteration_results)}")
         st.markdown(f"- **iteration_metrics_total:** `{sr.iteration_metrics_total}`")
         st.markdown(f"- **iteration_metrics_suggestions:** `{sr.iteration_metrics_suggestions}`")
@@ -140,13 +151,17 @@ def _render_cross_experiment(loaded: Dict[str, ActiveLearningMultipleSimulationR
 def _render_header(name: str, multi: ActiveLearningMultipleSimulationResult) -> None:
     summary = multi.summary()
     st.markdown(f"### `{name}`")
-    cols = st.columns(6)
-    cols[0].metric("Embedder", summary["embedder_name"])
-    cols[1].metric("Model", str(summary["model_type"]))
-    cols[2].metric("Mode", str(summary["optimization_mode"]))
-    cols[3].metric("Sims", summary["n_simulations"])
-    cols[4].metric("Successful", f"{summary['n_successful']}/{summary['n_simulations']}")
-    cols[5].metric("Target threshold", summary["target_successes_threshold"])
+    # First row
+    cols_row1 = st.columns(3)
+    cols_row1[0].metric("Embedder", summary["embedder_name"])
+    cols_row1[1].metric("Model", str(summary["model_type"]))
+    cols_row1[2].metric("Mode", str(summary["optimization_mode"]))
+
+    # Second row
+    cols_row2 = st.columns(3)
+    cols_row2[0].metric("Sims", summary["n_simulations"])
+    cols_row2[1].metric("Successful", f"{summary['n_successful']}/{summary['n_simulations']}")
+    cols_row2[2].metric("Target threshold", summary["target_successes_threshold"])
     if summary.get("discrete_targets"):
         st.caption(f"Discrete targets: {', '.join(summary['discrete_targets'])}")
 
