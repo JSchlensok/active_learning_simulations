@@ -10,7 +10,27 @@ from biocentral_api import SequenceData, ActiveLearningCampaignConfig, ActiveLea
     ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, ActiveLearningIterationResult, \
     ActiveLearningSimulationResult, ActiveLearningConvergenceConfig
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class DashboardExperimentData(BaseModel):
+    name: str
+    dataset: str
+    embedder: str
+    model: str
+    summary: dict
+    aggregated_hits: int
+    aggregated_suggestions: int
+    per_sim_target_successes: List[List[int]]
+    per_sim_metrics_total: List[List[float]]
+    per_sim_metrics_suggestions: List[List[float]]
+    per_sim_is_success: List[bool]
+    # For drill-down
+    single_sims: List[dict]
+
+
+class DashboardCompressedData(BaseModel):
+    experiments: List[DashboardExperimentData]
 
 
 class ActiveLearningFixedBaseConfig(BaseModel):
@@ -28,11 +48,39 @@ class ActiveLearningFixedBaseConfig(BaseModel):
     target_value: Optional[float] = None
     discrete_targets: Optional[List[str]] = None
 
+    def explain_optimization_mode(self) -> str:
+        match self.optimization_mode:
+            case ActiveLearningOptimizationMode.MAXIMIZE:
+                return "Maximize the target value."
+            case ActiveLearningOptimizationMode.MINIMIZE:
+                return "Minimize the target value."
+            case ActiveLearningOptimizationMode.DISCRETE:
+                return "Classify the sequences into discrete classes."
+            case ActiveLearningOptimizationMode.INTERVAL:
+                return "Find target sequences with labels in the specified interval."
+            case ActiveLearningOptimizationMode.VALUE:
+                return "Find targets with the specified value."
+            case _:
+                return "Unknown optimization mode."
 
 class ActiveLearningSimulator:
     def __init__(self, al_base_config: ActiveLearningFixedBaseConfig):
         self.base_config = al_base_config
-        self.biocentral_api = BiocentralAPI(local_only=True)
+
+    @staticmethod
+    def _biocentral_api():
+        return BiocentralAPI(local_only=True)
+
+    def get_simulation_config(self):
+        return ActiveLearningSimulationConfig(simulation_data=self.base_config.simulation_data,
+                                              n_start=10,  # TODO
+                                              n_suggestions_per_iteration=5,  # TODO
+                                              convergence_config=ActiveLearningConvergenceConfig(
+                                                  max_labels_budget=50,
+                                                  target_successes=10,
+                                                  max_consecutive_failures=5
+                                              ),  # TODO
+                                              )
 
     def _run_simulation(self, model_type: ActiveLearningModelType, embedder_name: str,
                         seed: int) -> ActiveLearningSingleSimulationResult:
@@ -45,17 +93,9 @@ class ActiveLearningSimulator:
                                                           target_ub=self.base_config.target_ub,
                                                           target_value=self.base_config.target_value,
                                                           discrete_targets=self.base_config.discrete_targets)
-        al_simulation_config = ActiveLearningSimulationConfig(simulation_data=self.base_config.simulation_data,
-                                                              n_start=10,  # TODO
-                                                              n_suggestions_per_iteration=5,  # TODO
-                                                              convergence_config=ActiveLearningConvergenceConfig(
-                                                                  max_labels_budget=50,
-                                                                  target_successes=10,
-                                                                  max_consecutive_failures=5
-                                                              ),  # TODO
-                                                              )
-        result = self.biocentral_api.al_simulation(campaign_config=al_campaign_config,
-                                                   simulation_config=al_simulation_config).run_with_progress()
+        al_simulation_config = self.get_simulation_config()
+        result = self._biocentral_api().al_simulation(campaign_config=al_campaign_config,
+                                                      simulation_config=al_simulation_config).run_with_progress()
         return ActiveLearningSingleSimulationResult(al_campaign_config=al_campaign_config,
                                                     al_simulation_config=al_simulation_config,
                                                     simulation_result=result)
@@ -205,6 +245,12 @@ class ActiveLearningSingleSimulationResult:
 
 class ActiveLearningMultipleSimulationResult:
     def __init__(self, simulation_results: List[ActiveLearningSingleSimulationResult]):
+        first_embedder_name = simulation_results[0].al_campaign_config.embedder_name
+        first_model_type = simulation_results[0].al_campaign_config.model_type
+        assert all(
+            result.al_campaign_config.embedder_name == first_embedder_name and result.al_campaign_config.model_type == first_model_type
+            for result in simulation_results), "Embedder config must be the same"
+
         self.simulation_results = simulation_results
         self._validate()
 
@@ -227,6 +273,12 @@ class ActiveLearningMultipleSimulationResult:
                 for res in json_results
             ]
             return cls(results)
+
+    def embedder_name(self):
+        return self.simulation_results[0].al_campaign_config.embedder_name
+
+    def model_type(self):
+        return self.simulation_results[0].al_campaign_config.model_type
 
     def get_best_simulation(self):
         return max(self.simulation_results, key=lambda ssr: ssr.simulation_result.iteration_target_successes)

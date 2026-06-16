@@ -1,0 +1,109 @@
+import re
+
+from pathlib import Path
+from al_simulator import (
+    ActiveLearningMultipleSimulationResult,
+    DashboardCompressedData,
+    DashboardExperimentData,
+)
+
+RESULTS_DIR = Path("simulation_v1_results")
+OUTPUT_FILE = RESULTS_DIR / "compressed_dashboard_data.json"
+
+
+def parse_dataset_from_filename(fname: str) -> str:
+    # al_sim_{DATASET}_{EMBEDDER_NAME}_{MODEL_NAME}.json
+    match = re.match(r"al_sim_(.+?)_(.+?)_(.+)\.json", fname)
+    if match:
+        return match.group(1)
+    return "Unknown"
+
+
+def main():
+    if not RESULTS_DIR.exists():
+        print(f"Directory {RESULTS_DIR} not found.")
+        return
+
+    json_files = sorted(RESULTS_DIR.glob("*.json"))
+    experiments = []
+
+    for path in json_files:
+        if path.name == OUTPUT_FILE.name:
+            continue
+
+        print(f"Processing {path.name}...")
+
+        multi = ActiveLearningMultipleSimulationResult.from_json(path)
+        dataset_name = parse_dataset_from_filename(path.name)
+        embedder_name = multi.embedder_name()
+        model_name = multi.model_type().value
+
+        # Prepare data for DashboardExperimentData
+        summary = multi.summary()
+
+        per_sim_target_successes = [
+            list(ssr.simulation_result.iteration_target_successes or [])
+            for ssr in multi.simulation_results
+        ]
+        per_sim_metrics_total = [
+            [m.mean for m in ssr.simulation_result.iteration_metrics_total or []]
+            for ssr in multi.simulation_results
+        ]
+        per_sim_metrics_suggestions = [
+            [m.mean for m in ssr.simulation_result.iteration_metrics_suggestions or []]
+            for ssr in multi.simulation_results
+        ]
+        per_sim_is_success = [ssr.is_success() for ssr in multi.simulation_results]
+
+        # Prepare single_sims for drill-down
+        single_sims = []
+        for ssr in multi.simulation_results:
+            # We only need enough to render the single view
+            # Most of it is in ssr.simulation_result and ssr.al_campaign_config
+            # We can store a stripped down version
+            sim_data = {
+                "label": ssr.label(),
+                "is_success": ssr.is_success(),
+                "seed": ssr.al_campaign_config.seed,
+                "stop_reasons": ssr.simulation_result.stop_reasons or ["None"],
+                "iteration_metrics_total": [m.mean for m in ssr.simulation_result.iteration_metrics_total or []],
+                "iteration_metrics_suggestions": [m.mean for m in
+                                                  ssr.simulation_result.iteration_metrics_suggestions or []],
+                "iteration_target_successes": list(ssr.simulation_result.iteration_target_successes or []),
+                "iteration_consecutive_failures": list(ssr.simulation_result.iteration_consecutive_failures or []),
+                "iteration_results_count": len(ssr.simulation_result.iteration_results),
+                "target_successes_threshold": ssr.al_simulation_config.convergence_config.target_successes,
+            }
+            # Optional: suggested_labels if present
+            if hasattr(ssr.simulation_result, "iteration_metrics_suggestions"):
+                # This is a bit complex as it depends on labels,
+                # but let's see if we can just store the data needed for the chart
+                pass
+            single_sims.append(sim_data)
+
+        exp_data = DashboardExperimentData(
+            name=path.name,
+            dataset=dataset_name,
+            embedder=embedder_name,
+            model=model_name,
+            summary=summary,
+            aggregated_hits=multi.get_aggregated_hits(),
+            aggregated_suggestions=multi.get_aggregated_number_of_suggestions(),
+            per_sim_target_successes=per_sim_target_successes,
+            per_sim_metrics_total=per_sim_metrics_total,
+            per_sim_metrics_suggestions=per_sim_metrics_suggestions,
+            per_sim_is_success=per_sim_is_success,
+            single_sims=single_sims
+        )
+        experiments.append(exp_data)
+
+    compressed = DashboardCompressedData(experiments=experiments)
+
+    with open(OUTPUT_FILE, "w") as f:
+        f.write(compressed.model_dump_json(indent=4))
+
+    print(f"Successfully created {OUTPUT_FILE} with {len(experiments)} experiments.")
+
+
+if __name__ == "__main__":
+    main()
