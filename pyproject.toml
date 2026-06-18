@@ -7,12 +7,11 @@ dependencies = [
     "pandas-stubs==2.3.3.251201",
     "altair>=5.3",
     "pandas>=2.2",
+    "numpy>=2.4.6", # TODO REMOVE AFTER UPDATING DEPENDENCIES
     "streamlit>=1.36",
     "vl-convert-python>=1.6",
-    "biocentral-api@ git+https://github.com/biocentral/biocentral_api.git@48171f95054578e61be9dc5d4999c53811474cd1#subdirectory=python",
-    "biotrainer-core @ git+https://github.com/biocentral/biotrainer.git@a51209234e133310eb5373099cfb1d8cf7ed033a#subdirectory=biotrainer-core",
+    "biocentral-api @ git+https://github.com/biocentral/biocentral_api.git@fc996eedd7b3b6237d9bb7805ab06affc7d99c24#subdirectory=python",
 ]
 
 [tool.uv.sources]
 #biocentral-api = { path = "../biocentral_api/python", editable = true }
-#biotrainer-core = { path = "../biotrainerFork/biotrainer-core", editable = true }

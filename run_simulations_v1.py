@@ -2,12 +2,13 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from biocentral_api import ActiveLearningModelType, CommonEmbedder
 
-from al_simulation_container import ALSimulatorDataset, get_simulator
-from al_simulator import ActiveLearningMultipleSimulationResult
+from al_compress_reports import compress_reports
+from al_simulation_container import ALSimulatorDataset
+from al_simulator import ActiveLearningMultipleSimulationResult, get_simulator
 
 
 class ExperimentConstants:
-    n_rounds: int = 5
+    n_rounds: int = 2  # TODO 5
     result_dir: Path = Path("simulation_v1_results/")
 
 
@@ -24,9 +25,9 @@ class ExperimentParametersV1(BaseModel):
 def _create_experiment_params():
     experiment_params = []
     dataset_ids = ALSimulatorDataset.all()
-    embedder_names = [CommonEmbedder.ONE_HOT_ENCODING.value, CommonEmbedder.ProtT5.value]
+    embedder_names = [CommonEmbedder.ONE_HOT_ENCODING.value]#, CommonEmbedder.ProtT5.value]
     model_types = [ActiveLearningModelType.GAUSSIAN_PROCESS, ActiveLearningModelType.FNN_MCD,
-                  ActiveLearningModelType.RANDOM]
+                   ActiveLearningModelType.RANDOM]
     for dataset_id in dataset_ids:
         for embedder_name in embedder_names:
             for model_type in model_types:
@@ -34,8 +35,10 @@ def _create_experiment_params():
                     ExperimentParametersV1(dataset_id=dataset_id, embedder_name=embedder_name, model_type=model_type))
     # TODO DEBUG
     #experiment_params = [
-    #    ExperimentParametersV1(dataset_id=ALSimulatorDataset.AMYLASE, model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
-    #                           embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)]
+    #    ExperimentParametersV1(dataset_id=ALSimulatorDataset.PHOT,
+    #                           model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
+    #                           embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
+    #]
     return experiment_params
 
 
@@ -53,13 +56,15 @@ def _run_experiment(experiment_params: ExperimentParametersV1):
                                            embedder_name=experiment_params.embedder_name,
                                            n_rounds=ExperimentConstants.n_rounds)
         sim_result.save(save_dir)
-    sim_result.visualize(save_path=save_dir.with_suffix(".png"))
+    sim_result.print_stats()
 
 
 def main():
     experiment_params = _create_experiment_params()
     for experiment_param in experiment_params:
         _run_experiment(experiment_param)
+    print("All simulations completed. Compressing reports...")
+    compress_reports()
 
 
 if __name__ == "__main__":

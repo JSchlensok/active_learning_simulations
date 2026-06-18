@@ -6,12 +6,14 @@ import altair as alt
 
 from pathlib import Path
 from typing import List, Optional
+from pydantic import BaseModel, Field
+from biotrainer_core.input_files import read_FASTA
+
+from al_simulation_container import ALSimulatorDataset
 
 from biocentral_api import SequenceData, ActiveLearningCampaignConfig, ActiveLearningSimulationConfig, \
     ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, ActiveLearningIterationResult, \
     ActiveLearningSimulationResult, ActiveLearningConvergenceConfig
-
-from pydantic import BaseModel, Field
 
 
 class DashboardSingleSimulationData(BaseModel):
@@ -34,7 +36,7 @@ class DashboardSingleSimulationData(BaseModel):
 
 class DashboardExperimentData(BaseModel):
     name: str
-    dataset: str
+    dataset_id: ALSimulatorDataset
     embedder: str
     model: str
     summary: dict
@@ -58,6 +60,9 @@ class ActiveLearningFixedBaseConfig(BaseModel):
         frozen = False
 
     """ Fixed base config for active learning simulations that does not change throughout simulation"""
+    # dataset_id
+    dataset_id: ALSimulatorDataset
+
     # Simulation config
     simulation_data: List[SequenceData]
 
@@ -82,6 +87,41 @@ class ActiveLearningFixedBaseConfig(BaseModel):
                 return "Find targets with the specified value."
             case _:
                 return "Unknown optimization mode."
+
+
+def get_simulator(dataset_id: ALSimulatorDataset) -> ActiveLearningSimulator:
+    match dataset_id:
+        case ALSimulatorDataset.MELTOME_MAXIMIZE:
+            meltome_base_config = ActiveLearningFixedBaseConfig(
+                dataset_id=dataset_id,
+                simulation_data=read_FASTA("datasets/biotrainer_meltome_mixed_max2000.fasta"),
+                optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE)
+            return ActiveLearningSimulator(al_base_config=meltome_base_config)
+        case ALSimulatorDataset.MELTOME_MINIMIZE:
+            meltome_base_config = ActiveLearningFixedBaseConfig(
+                dataset_id=dataset_id,
+                simulation_data=read_FASTA("datasets/biotrainer_meltome_mixed_max2000.fasta"),
+                optimization_mode=ActiveLearningOptimizationMode.MINIMIZE)
+            return ActiveLearningSimulator(al_base_config=meltome_base_config)
+        case ALSimulatorDataset.SCL:
+            scl_base_config = ActiveLearningFixedBaseConfig(
+                dataset_id=dataset_id,
+                simulation_data=read_FASTA("datasets/scl_max2000.fasta"),
+                optimization_mode=ActiveLearningOptimizationMode.DISCRETE,
+                discrete_targets=["Peroxisome"])
+            return ActiveLearningSimulator(al_base_config=scl_base_config)
+        case ALSimulatorDataset.AMYLASE:
+            amylase_base_config = ActiveLearningFixedBaseConfig(
+                dataset_id=dataset_id,
+                simulation_data=read_FASTA("datasets/amylase_pet_max2000.fasta"),
+                optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE)
+            return ActiveLearningSimulator(al_base_config=amylase_base_config)
+        case ALSimulatorDataset.PHOT:
+            phot_base_config = ActiveLearningFixedBaseConfig(
+                dataset_id=dataset_id,
+                simulation_data=read_FASTA("datasets/PHOT_CHLRE_Chen_2023_max2000.fasta"),
+                optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE)
+            return ActiveLearningSimulator(al_base_config=phot_base_config)
 
 
 class ActiveLearningSimulator:
@@ -117,9 +157,14 @@ class ActiveLearningSimulator:
         al_simulation_config = self.get_simulation_config()
         result = self._biocentral_api().al_simulation(campaign_config=al_campaign_config,
                                                       simulation_config=al_simulation_config).run_with_progress()
-        return ActiveLearningSingleSimulationResult(al_campaign_config=al_campaign_config,
-                                                    al_simulation_config=al_simulation_config,
-                                                    simulation_result=result)
+        if result is None:
+            raise RuntimeError("Simulation failed")
+
+        return ActiveLearningSingleSimulationResult(
+            dataset_id=self.base_config.dataset_id,
+            al_campaign_config=al_campaign_config,
+            al_simulation_config=al_simulation_config,
+            simulation_result=result)
 
     def simulate(self, embedder_name: str, model_type: ActiveLearningModelType,
                  n_rounds: int) -> ActiveLearningMultipleSimulationResult:
@@ -135,9 +180,12 @@ class ActiveLearningSimulator:
 
 
 class ActiveLearningSingleSimulationResult:
-    def __init__(self, al_campaign_config: ActiveLearningCampaignConfig,
+    def __init__(self,
+                 dataset_id: ALSimulatorDataset,
+                 al_campaign_config: ActiveLearningCampaignConfig,
                  al_simulation_config: ActiveLearningSimulationConfig,
                  simulation_result: ActiveLearningSimulationResult):
+        self.dataset_id = dataset_id
         self.al_campaign_config = al_campaign_config
         self.al_simulation_config = al_simulation_config
         self.simulation_result = simulation_result
@@ -148,6 +196,7 @@ class ActiveLearningSingleSimulationResult:
     def model_dump_json(self):
         """Serialize to JSON string"""
         return json.dumps({
+            'dataset_id': self.dataset_id.value,
             'al_campaign_config': json.loads(self.al_campaign_config.model_dump_json()),
             'al_simulation_config': json.loads(self.al_simulation_config.model_dump_json()),
             'simulation_result': json.loads(self.simulation_result.model_dump_json())
@@ -158,6 +207,7 @@ class ActiveLearningSingleSimulationResult:
         """Create instance from JSON string"""
         data = json.loads(json_str)
         return cls(
+            dataset_id=ALSimulatorDataset(data['dataset_id']),
             al_campaign_config=ActiveLearningCampaignConfig.model_validate_json(json.dumps(data['al_campaign_config'])),
             al_simulation_config=ActiveLearningSimulationConfig.model_validate_json(
                 json.dumps(data['al_simulation_config'])),
@@ -217,7 +267,7 @@ class ActiveLearningSingleSimulationResult:
 
         result = self.simulation_result
         is_discrete = self.al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE
-        metric_name = "Accuracy" if is_discrete else "RMSE"
+        metric_name = "Accuracy" if is_discrete else "MAE"
 
         n_rounds_candidates = [
             len(getattr(result, "iteration_results", []) or []),
@@ -267,12 +317,6 @@ class ActiveLearningSingleSimulationResult:
 
 class ActiveLearningMultipleSimulationResult:
     def __init__(self, simulation_results: List[ActiveLearningSingleSimulationResult]):
-        first_embedder_name = simulation_results[0].al_campaign_config.embedder_name
-        first_model_type = simulation_results[0].al_campaign_config.model_type
-        assert all(
-            result.al_campaign_config.embedder_name == first_embedder_name and result.al_campaign_config.model_type == first_model_type
-            for result in simulation_results), "Embedder config must be the same"
-
         self.simulation_results = simulation_results
         self._validate()
 
@@ -283,6 +327,7 @@ class ActiveLearningMultipleSimulationResult:
             assert first_result.al_campaign_config.embedder_name == result.al_campaign_config.embedder_name, "Embedder config must be the same"
             assert first_result.al_campaign_config.optimization_mode == result.al_campaign_config.optimization_mode, "Optimization mode must be the same"
             assert first_result.al_simulation_config.convergence_config.n_hits == result.al_simulation_config.convergence_config.n_hits, "Simulation configs must be the same"
+            assert first_result.dataset_id == result.dataset_id, "Dataset ID must be the same"
             assert len(first_result.simulation_result.potential_hits) == len(
                 result.simulation_result.potential_hits), "Potential hits must be the same"
 
@@ -297,6 +342,9 @@ class ActiveLearningMultipleSimulationResult:
                 for res in json_results
             ]
             return cls(results)
+
+    def dataset_id(self) -> ALSimulatorDataset:
+        return self.simulation_results[0].dataset_id
 
     def embedder_name(self) -> str:
         return self.simulation_results[0].al_campaign_config.embedder_name
@@ -327,7 +375,7 @@ class ActiveLearningMultipleSimulationResult:
     def _percent_successful(self):
         return sum([1 for ssr in self.simulation_results if ssr.is_success()]) / len(self.simulation_results) * 100
 
-    def _print_stats(self):
+    def print_stats(self):
         print(f"Summary over {len(self.simulation_results)} simulations:")
         print(f"Percent successful: {self._percent_successful()}%")
 
@@ -339,7 +387,7 @@ class ActiveLearningMultipleSimulationResult:
         ).resolve_scale(color="independent")
 
     def visualize(self, save_path: Optional[Path] = None) -> Path:
-        self._print_stats()
+        self.print_stats()
         print("Visualizing aggregated results across multiple simulations...")
         charts = self.build_altair_charts()
         layout = self._compose_layout(charts)
@@ -371,7 +419,7 @@ class ActiveLearningMultipleSimulationResult:
 
         is_discrete = self.simulation_results[
                           0].al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE
-        metric_name = "Accuracy" if is_discrete else "RMSE"
+        metric_name = "Accuracy" if is_discrete else "MAE"
 
         per_sim_n_hits = [
             list(map(len, ssr.simulation_result.iteration_hits or []))

@@ -19,7 +19,7 @@ def parse_dataset_from_filename(fname: str) -> str:
     return "Unknown"
 
 
-def main():
+def compress_reports():
     if not RESULTS_DIR.exists():
         print(f"Directory {RESULTS_DIR} not found.")
         return
@@ -34,7 +34,7 @@ def main():
         print(f"Processing {path.name}...")
 
         multi = ActiveLearningMultipleSimulationResult.from_json(path)
-        dataset_name = parse_dataset_from_filename(path.name)
+        dataset_name = multi.dataset_id()
         embedder_name = multi.embedder_name()
         model_name = multi.model_type().value
         potential_hits = multi.potential_hits()
@@ -79,7 +79,7 @@ def main():
 
         exp_data = DashboardExperimentData(
             name=path.name,
-            dataset=dataset_name,
+            dataset_id=dataset_name,
             embedder=embedder_name,
             model=model_name,
             summary=summary,
@@ -100,6 +100,10 @@ def main():
         f.write(compressed.model_dump_json(indent=4))
 
     print(f"Successfully created {OUTPUT_FILE} with {len(experiments)} experiments.")
+
+
+def main():
+    compress_reports()
 
 
 if __name__ == "__main__":

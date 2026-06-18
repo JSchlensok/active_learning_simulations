@@ -14,8 +14,9 @@ import pandas as pd
 import numpy as np
 
 import al_plots
-from al_simulation_container import ALSimulatorDataset, get_simulator
+from al_simulation_container import ALSimulatorDataset
 from al_simulator import (
+    get_simulator,
     ActiveLearningSimulator,
     DashboardCompressedData,
     DashboardExperimentData,
@@ -60,7 +61,7 @@ def _render_aggregate_from_compressed(exp: DashboardExperimentData) -> None:
 
     summary = exp.summary
     is_discrete = summary["is_discrete"]
-    metric_name = "Accuracy" if is_discrete else "RMSE"
+    metric_name = "Accuracy" if is_discrete else "MAE"
 
     # We need to compute stats for the charts
     max_iterations = max((len(m) for m in exp.per_sim_metrics_total), default=0)
@@ -122,7 +123,7 @@ def _render_single_from_compressed(sim_data, summary: dict) -> None:
     cols_row1[1].metric("Success", sim_data.is_success)
     st.metric("Primary Stop Reason", stop_reasons[0])
 
-    metric_name = "Accuracy" if summary["is_discrete"] else "RMSE"
+    metric_name = "Accuracy" if summary["is_discrete"] else "MAE"
 
     n_iteration_hits = list(map(len, sim_data.iteration_hits))
 
@@ -225,7 +226,7 @@ def _render_comparison_from_compressed(subset: List[DashboardExperimentData]) ->
         cross_cum_inputs[exp.name] = exp.per_sim_n_hits
         cross_metric_inputs[exp.name] = exp.per_sim_metrics_total
         cross_targets[exp.name] = exp.summary["n_hits_threshold"]
-        metric_names.add("Accuracy" if exp.summary["is_discrete"] else "RMSE")
+        metric_names.add("Accuracy" if exp.summary["is_discrete"] else "MAE")
 
     metric_name = ", ".join(sorted(metric_names)) if metric_names else "Metric"
 
@@ -274,9 +275,10 @@ if compressed_data:
     # Group by dataset
     ds_groups: Dict[str, List[DashboardExperimentData]] = {}
     for exp in compressed_data.experiments:
-        if exp.dataset not in ds_groups:
-            ds_groups[exp.dataset] = []
-        ds_groups[exp.dataset].append(exp)
+        dataset_name = exp.dataset_id.name
+        if dataset_name not in ds_groups:
+            ds_groups[dataset_name] = []
+        ds_groups[dataset_name].append(exp)
 
     selected_dataset = st.sidebar.selectbox("Select Dataset", sorted(ds_groups.keys()))
     al_simulator = _load_simulator(selected_dataset)
