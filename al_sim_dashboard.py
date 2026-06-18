@@ -192,6 +192,17 @@ def _render_comparison_from_compressed(subset: List[DashboardExperimentData]) ->
     for key, exps in groups.items():
         all_hits = sum(e.aggregated_hits for e in exps)
         all_suggestions = sum(e.aggregated_suggestions for e in exps)
+        all_iteration_hits = []
+        for e in exps:
+            single_sim_res = e.single_sims
+            for single_sim in single_sim_res:
+                for it_hit in single_sim.iteration_hits:
+                    all_iteration_hits.extend(it_hit)
+        assert len(all_iteration_hits) == all_hits, \
+            (f"Number of iteration hits ({len(all_iteration_hits)}) "
+             f"does not match total hits ({all_hits})")  # TODO: Optimize compression
+        all_unique_hits = set(all_iteration_hits)
+
         all_is_success = [s for e in exps for s in e.per_sim_is_success]
         total_simulations = len(all_is_success)
 
@@ -210,6 +221,7 @@ def _render_comparison_from_compressed(subset: List[DashboardExperimentData]) ->
         comparison_data.append({
             mode: key,
             "Total Hits": all_hits,
+            "Unique Hits": len(all_unique_hits),
             "Total Suggestions": all_suggestions,
             "Hit Rate": f"{all_hits / all_suggestions:.2%}" if all_suggestions > 0 else "0%",
             "Avg. Hits per Campaign": f"{all_hits / total_simulations:.2f}" if total_simulations > 0 else "0.00",
@@ -284,6 +296,7 @@ if compressed_data:
     al_simulator = _load_simulator(selected_dataset)
     base_config = al_simulator.base_config
     simulation_config = al_simulator.get_simulation_config()
+    exps = ds_groups[selected_dataset]
 
     # Display configuration summary in sidebar
     st.sidebar.markdown("---")
@@ -293,8 +306,6 @@ if compressed_data:
         st.markdown(
             f"**Optimization Mode:** {base_config.optimization_mode.value}",
         help=f"The goal of this simulation: {base_config.explain_optimization_mode()}")
-        st.markdown(f"**Total Sequences:** {len(base_config.simulation_data)}",
-                    help="Total number of sequences in the simulation dataset.")
 
         if base_config.target_lb is not None:
             st.markdown(f"**Target Lower Bound:** {base_config.target_lb}")
@@ -304,6 +315,15 @@ if compressed_data:
             st.markdown(f"**Target Value:** {base_config.target_value}")
         if base_config.discrete_targets:
             st.markdown(f"**Discrete Targets:** {', '.join(base_config.discrete_targets)}")
+
+        n_sim_data = len(base_config.simulation_data)
+        st.markdown(f"**Total Sequences:** {n_sim_data}",
+                    help="Total number of sequences in the simulation dataset.")
+        potential_hits = exps[0].potential_hits
+        n_potential_hits = sum(map(len, potential_hits))
+        n_potential_hits_percent = round(100 * n_potential_hits / n_sim_data, 2)
+        st.markdown(f"**Number of potential hits:** {n_potential_hits} ({n_potential_hits_percent} %)",
+                    help="Total number of potential hits in the dataset given the campaign configuration.")
 
     with st.sidebar.expander("Simulation Configuration", expanded=True):
         if simulation_config.n_start is not None:
@@ -330,7 +350,7 @@ if compressed_data:
 
     subset = ds_groups[selected_dataset]
 
-    main_tabs = st.tabs(["Individual Simulation Result", "Comparison"])
+    main_tabs = st.tabs(["Individual Simulation Result", "Comparison", "Dataset Statistics"])
 
     with main_tabs[0]:
         exp_names = {e.name: e for e in subset}
@@ -350,6 +370,12 @@ if compressed_data:
 
     with main_tabs[1]:
         _render_comparison_from_compressed(subset)
+
+    with main_tabs[2]:
+        potential_hits = exps[0].potential_hits
+        n_potential_hits = sum(map(len, potential_hits))
+        st.metric(f"Number of potential hits", value=n_potential_hits,
+                    help="Total number of potential hits in the dataset given the campaign configuration.")
 
 else:
     st.error(f"Compressed data file not found at `{COMPRESSED_DATA_PATH}`. Please run `compress_reports.py` first.")
