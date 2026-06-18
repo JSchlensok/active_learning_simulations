@@ -115,29 +115,31 @@ def _render_aggregate_from_compressed(exp: DashboardExperimentData) -> None:
         st.altair_chart(suggestions_chart.interactive(), use_container_width=True)
 
 
-def _render_single_from_compressed(sim_data: dict, summary: dict) -> None:
-    stop_reasons = sim_data["stop_reasons"]
+def _render_single_from_compressed(sim_data, summary: dict) -> None:
+    stop_reasons = sim_data.stop_reasons
     cols_row1 = st.columns(2)
-    cols_row1[0].metric("Seed", sim_data["seed"])
-    cols_row1[1].metric("Success", sim_data["is_success"])
+    cols_row1[0].metric("Seed", sim_data.seed)
+    cols_row1[1].metric("Success", sim_data.is_success)
     st.metric("Primary Stop Reason", stop_reasons[0])
 
     metric_name = "Accuracy" if summary["is_discrete"] else "RMSE"
 
+    n_iteration_hits = list(map(len, sim_data.iteration_hits))
+
     chart_metric = al_plots.build_metric_evolution_chart(
-        iteration_metrics_total=sim_data["iteration_metrics_total"],
-        iteration_metrics_suggestions=sim_data["iteration_metrics_suggestions"],
-        n_iteration_hits=sim_data["n_iteration_hits"],
+        iteration_metrics_total=sim_data.iteration_metrics_total,
+        iteration_metrics_suggestions=sim_data.iteration_metrics_suggestions,
+        n_iteration_hits=n_iteration_hits,
         metric_name=metric_name
     )
 
     chart_failures = al_plots.build_consecutive_failures_chart(
-        iteration_consecutive_failures=sim_data["iteration_consecutive_failures"],
+        iteration_consecutive_failures=sim_data.iteration_consecutive_failures,
         stop_reasons=stop_reasons
     )
 
     chart_successes = al_plots.build_n_hits_chart(
-        n_iteration_hits=sim_data["n_iteration_hits"]
+        n_iteration_hits=n_iteration_hits
     )
 
     col_left, col_right = st.columns(2)
@@ -149,11 +151,11 @@ def _render_single_from_compressed(sim_data: dict, summary: dict) -> None:
 
     with st.expander("Raw stats"):
         st.markdown(f"- **Stop reasons:** {stop_reasons}")
-        st.markdown(f"- **Total iterations:** {sim_data['iteration_results_count']}")
-        st.markdown(f"- **iteration_metrics_total:** `{sim_data['iteration_metrics_total']}`")
-        st.markdown(f"- **iteration_metrics_suggestions:** `{sim_data['iteration_metrics_suggestions']}`")
-        st.markdown(f"- **n_iteration_hits:** `{sim_data['n_iteration_hits']}`")
-        st.markdown(f"- **iteration_consecutive_failures:** `{sim_data['iteration_consecutive_failures']}`")
+        st.markdown(f"- **Total iterations:** {sim_data.iteration_results_count}")
+        st.markdown(f"- **iteration_metrics_total:** `{sim_data.iteration_metrics_total}`")
+        st.markdown(f"- **iteration_metrics_suggestions:** `{sim_data.iteration_metrics_suggestions}`")
+        st.markdown(f"- **n_iteration_hits:** `{n_iteration_hits}`")
+        st.markdown(f"- **iteration_consecutive_failures:** `{sim_data.iteration_consecutive_failures}`")
 
 
 def _extract_consecutive_failures_threshold(stop_reasons: List[str]) -> Optional[int]:
@@ -339,7 +341,7 @@ if compressed_data:
         with sub_tabs[0]:
             _render_aggregate_from_compressed(exp)
         with sub_tabs[1]:
-            sim_labels = {s["label"]: s for s in exp.single_sims}
+            sim_labels = {s.label: s for s in exp.single_sims}
             selected_label = st.selectbox("Simulation run", sorted(sim_labels.keys()))
             sim_data = sim_labels[selected_label]
             _render_single_from_compressed(sim_data, exp.summary)

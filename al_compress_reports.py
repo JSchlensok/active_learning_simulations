@@ -4,7 +4,7 @@ from pathlib import Path
 from al_simulator import (
     ActiveLearningMultipleSimulationResult,
     DashboardCompressedData,
-    DashboardExperimentData,
+    DashboardExperimentData, DashboardSingleSimulationData,
 )
 
 RESULTS_DIR = Path("simulation_v1_results")
@@ -62,25 +62,19 @@ def main():
             # We only need enough to render the single view
             # Most of it is in ssr.simulation_result and ssr.al_campaign_config
             # We can store a stripped down version
-            # TODO Refactor to data class
-            sim_data = {
-                "label": ssr.label(),
-                "is_success": ssr.is_success(),
-                "seed": ssr.al_campaign_config.seed,
-                "stop_reasons": ssr.simulation_result.stop_reasons or ["None"],
-                "iteration_metrics_total": [m.mean for m in ssr.simulation_result.iteration_metrics_total or []],
-                "iteration_metrics_suggestions": [m.mean for m in
-                                                  ssr.simulation_result.iteration_metrics_suggestions or []],
-                "iteration_hits": list(ssr.simulation_result.iteration_hits or []),
-                "iteration_consecutive_failures": list(ssr.simulation_result.iteration_consecutive_failures or []),
-                "iteration_results_count": len(ssr.simulation_result.iteration_results),
-                "n_hits_threshold": ssr.al_simulation_config.convergence_config.target_successes,
-            }
-            # Optional: suggested_labels if present
-            if hasattr(ssr.simulation_result, "iteration_metrics_suggestions"):
-                # This is a bit complex as it depends on labels,
-                # but let's see if we can just store the data needed for the chart
-                pass
+            sim_data = DashboardSingleSimulationData(
+                label=ssr.label(),
+                is_success=ssr.is_success(),
+                seed=ssr.al_campaign_config.seed,
+                stop_reasons=ssr.simulation_result.stop_reasons or ["None"],
+                iteration_metrics_total=[m.mean for m in ssr.simulation_result.iteration_metrics_total or []],
+                iteration_metrics_suggestions=[m.mean for m in
+                                               ssr.simulation_result.iteration_metrics_suggestions or []],
+                iteration_hits=list(ssr.simulation_result.iteration_hits or []),
+                iteration_consecutive_failures=list(ssr.simulation_result.iteration_consecutive_failures or []),
+                iteration_results_count=len(ssr.simulation_result.iteration_results or []),
+                n_hits_threshold=ssr.al_simulation_config.convergence_config.n_hits,
+            )
             single_sims.append(sim_data)
 
         exp_data = DashboardExperimentData(
