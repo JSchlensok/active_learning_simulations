@@ -67,11 +67,11 @@ def _render_aggregate_from_compressed(exp: DashboardExperimentData) -> None:
     success_count = sum(1 for s in exp.per_sim_is_success if s)
 
     convergence_iterations, _, _ = al_plots._compute_convergence_stats(
-        per_sim_target_successes=exp.per_sim_target_successes,
-        target_successes_threshold=summary["target_successes_threshold"],
+        per_sim_n_hits=exp.per_sim_n_hits,
+        n_hits_threshold=summary["n_hits_threshold"],
     )
 
-    hits_per_sim = [sum(s) for s in exp.per_sim_target_successes]
+    hits_per_sim = [sum(s) for s in exp.per_sim_n_hits]
     best_idx = np.argmax(hits_per_sim)
     worst_idx = np.argmin(hits_per_sim)
 
@@ -85,9 +85,9 @@ def _render_aggregate_from_compressed(exp: DashboardExperimentData) -> None:
 
     st.subheader("Target discovery progress")
     cum_success_chart = al_plots.build_mean_cumulative_successes_chart(
-        per_sim_target_successes=exp.per_sim_target_successes,
+        per_sim_n_hits=exp.per_sim_n_hits,
         per_sim_is_success=exp.per_sim_is_success,
-        target_threshold=summary["target_successes_threshold"],
+        target_threshold=summary["n_hits_threshold"],
     )
     st.altair_chart(cum_success_chart.interactive(), use_container_width=True)
 
@@ -127,7 +127,7 @@ def _render_single_from_compressed(sim_data: dict, summary: dict) -> None:
     chart_metric = al_plots.build_metric_evolution_chart(
         iteration_metrics_total=sim_data["iteration_metrics_total"],
         iteration_metrics_suggestions=sim_data["iteration_metrics_suggestions"],
-        iteration_target_successes=sim_data["iteration_target_successes"],
+        n_iteration_hits=sim_data["n_iteration_hits"],
         metric_name=metric_name
     )
 
@@ -136,8 +136,8 @@ def _render_single_from_compressed(sim_data: dict, summary: dict) -> None:
         stop_reasons=stop_reasons
     )
 
-    chart_successes = al_plots.build_target_successes_chart(
-        iteration_target_successes=sim_data["iteration_target_successes"]
+    chart_successes = al_plots.build_n_hits_chart(
+        n_iteration_hits=sim_data["n_iteration_hits"]
     )
 
     col_left, col_right = st.columns(2)
@@ -152,7 +152,7 @@ def _render_single_from_compressed(sim_data: dict, summary: dict) -> None:
         st.markdown(f"- **Total iterations:** {sim_data['iteration_results_count']}")
         st.markdown(f"- **iteration_metrics_total:** `{sim_data['iteration_metrics_total']}`")
         st.markdown(f"- **iteration_metrics_suggestions:** `{sim_data['iteration_metrics_suggestions']}`")
-        st.markdown(f"- **iteration_target_successes:** `{sim_data['iteration_target_successes']}`")
+        st.markdown(f"- **n_iteration_hits:** `{sim_data['n_iteration_hits']}`")
         st.markdown(f"- **iteration_consecutive_failures:** `{sim_data['iteration_consecutive_failures']}`")
 
 
@@ -194,10 +194,10 @@ def _render_comparison_from_compressed(subset: List[DashboardExperimentData]) ->
 
         conv_speeds = []
         for e in exps:
-            target_threshold = e.summary["target_successes_threshold"]
+            target_threshold = e.summary["n_hits_threshold"]
             for i, is_succ in enumerate(e.per_sim_is_success):
                 if is_succ:
-                    cumsum = np.cumsum(e.per_sim_target_successes[i])
+                    cumsum = np.cumsum(e.per_sim_n_hits[i])
                     converged_at = np.where(cumsum >= target_threshold)[0]
                     if len(converged_at) > 0:
                         conv_speeds.append(int(converged_at[0]) + 1)
@@ -220,9 +220,9 @@ def _render_comparison_from_compressed(subset: List[DashboardExperimentData]) ->
 
     st.subheader("Visual Comparison")
     for exp in subset:
-        cross_cum_inputs[exp.name] = exp.per_sim_target_successes
+        cross_cum_inputs[exp.name] = exp.per_sim_n_hits
         cross_metric_inputs[exp.name] = exp.per_sim_metrics_total
-        cross_targets[exp.name] = exp.summary["target_successes_threshold"]
+        cross_targets[exp.name] = exp.summary["n_hits_threshold"]
         metric_names.add("Accuracy" if exp.summary["is_discrete"] else "RMSE")
 
     metric_name = ", ".join(sorted(metric_names)) if metric_names else "Metric"
@@ -250,7 +250,7 @@ def _render_header_from_compressed(exp: DashboardExperimentData) -> None:
     cols_row2 = st.columns(3)
     cols_row2[0].metric("Sims", summary["n_simulations"])
     cols_row2[1].metric("Successful", f"{summary['n_successful']}/{summary['n_simulations']}")
-    cols_row2[2].metric("Target threshold", summary["target_successes_threshold"])
+    cols_row2[2].metric("Target threshold", summary["n_hits_threshold"])
     if summary.get("discrete_targets"):
         st.caption(f"Discrete targets: {', '.join(summary['discrete_targets'])}")
 
@@ -314,8 +314,8 @@ if compressed_data:
 
         conv_cfg = simulation_config.convergence_config
         st.markdown("**Convergence Criteria:**", help="Determines when the simulated campaign should stop.")
-        if hasattr(conv_cfg, 'target_successes') and conv_cfg.target_successes is not None:
-            st.markdown(f"  - Target Successes: {conv_cfg.target_successes}",
+        if hasattr(conv_cfg, 'n_hits') and conv_cfg.n_hits is not None:
+            st.markdown(f"  - Number of Hits: {conv_cfg.n_hits}",
                         help="Stops the campaign when this number of targets (hits) is found.")
         if hasattr(conv_cfg, 'max_iterations') and conv_cfg.max_iterations is not None:
             st.markdown(f"  - Max Iterations: {conv_cfg.max_iterations}",

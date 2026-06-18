@@ -37,12 +37,13 @@ def main():
         dataset_name = parse_dataset_from_filename(path.name)
         embedder_name = multi.embedder_name()
         model_name = multi.model_type().value
+        potential_hits = multi.potential_hits()
 
         # Prepare data for DashboardExperimentData
         summary = multi.summary()
 
-        per_sim_target_successes = [
-            list(ssr.simulation_result.iteration_target_successes or [])
+        per_sim_n_hits = [
+            list(map(len, ssr.simulation_result.iteration_hits or []))
             for ssr in multi.simulation_results
         ]
         per_sim_metrics_total = [
@@ -61,6 +62,7 @@ def main():
             # We only need enough to render the single view
             # Most of it is in ssr.simulation_result and ssr.al_campaign_config
             # We can store a stripped down version
+            # TODO Refactor to data class
             sim_data = {
                 "label": ssr.label(),
                 "is_success": ssr.is_success(),
@@ -69,10 +71,10 @@ def main():
                 "iteration_metrics_total": [m.mean for m in ssr.simulation_result.iteration_metrics_total or []],
                 "iteration_metrics_suggestions": [m.mean for m in
                                                   ssr.simulation_result.iteration_metrics_suggestions or []],
-                "iteration_target_successes": list(ssr.simulation_result.iteration_target_successes or []),
+                "iteration_hits": list(ssr.simulation_result.iteration_hits or []),
                 "iteration_consecutive_failures": list(ssr.simulation_result.iteration_consecutive_failures or []),
                 "iteration_results_count": len(ssr.simulation_result.iteration_results),
-                "target_successes_threshold": ssr.al_simulation_config.convergence_config.target_successes,
+                "n_hits_threshold": ssr.al_simulation_config.convergence_config.target_successes,
             }
             # Optional: suggested_labels if present
             if hasattr(ssr.simulation_result, "iteration_metrics_suggestions"):
@@ -89,7 +91,8 @@ def main():
             summary=summary,
             aggregated_hits=multi.get_aggregated_hits(),
             aggregated_suggestions=multi.get_aggregated_number_of_suggestions(),
-            per_sim_target_successes=per_sim_target_successes,
+            potential_hits=potential_hits,
+            per_sim_n_hits=per_sim_n_hits,
             per_sim_metrics_total=per_sim_metrics_total,
             per_sim_metrics_suggestions=per_sim_metrics_suggestions,
             per_sim_is_success=per_sim_is_success,

@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import json
-
+import numpy as np
 import altair as alt
 
 from pathlib import Path
 from typing import List, Optional
+
 from biocentral_api import SequenceData, ActiveLearningCampaignConfig, ActiveLearningSimulationConfig, \
     ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, ActiveLearningIterationResult, \
     ActiveLearningSimulationResult, ActiveLearningConvergenceConfig
@@ -21,7 +22,8 @@ class DashboardExperimentData(BaseModel):
     summary: dict
     aggregated_hits: int
     aggregated_suggestions: int
-    per_sim_target_successes: List[List[int]]
+    potential_hits: List[str]
+    per_sim_n_hits: List[List[int]]
     per_sim_metrics_total: List[List[float]]
     per_sim_metrics_suggestions: List[List[float]]
     per_sim_is_success: List[bool]
@@ -63,6 +65,7 @@ class ActiveLearningFixedBaseConfig(BaseModel):
             case _:
                 return "Unknown optimization mode."
 
+
 class ActiveLearningSimulator:
     def __init__(self, al_base_config: ActiveLearningFixedBaseConfig):
         self.base_config = al_base_config
@@ -77,7 +80,7 @@ class ActiveLearningSimulator:
                                               n_suggestions_per_iteration=5,  # TODO
                                               convergence_config=ActiveLearningConvergenceConfig(
                                                   max_labels_budget=50,
-                                                  target_successes=10,
+                                                  n_hits=10,
                                                   max_consecutive_failures=5
                                               ),  # TODO
                                               )
@@ -144,8 +147,8 @@ class ActiveLearningSingleSimulationResult:
         )
 
     def is_success(self):
-        required_target_successes = 10  # TODO CONFIG
-        return sum(self.simulation_result.iteration_target_successes) >= required_target_successes
+        required_n_hits = 10  # TODO CONFIG
+        return sum(map(len, self.simulation_result.iteration_hits or [])) >= required_n_hits
 
     @staticmethod
     def _print_stats(result: ActiveLearningSimulationResult):
@@ -154,13 +157,13 @@ class ActiveLearningSingleSimulationResult:
         print(f"Total number of iterations: {len(result.iteration_results or [])}")
         print(f"Metrics for all masked data points per iteration: {result.iteration_metrics_total}")
         print(f"Metrics for suggested data points per iteration: {result.iteration_metrics_suggestions}")
-        print(f"Target successes over iterations: {result.iteration_target_successes}")
+        print(f"Number of hits over iterations: {list(map(len, result.iteration_hits or []))}")
         filtered_results_suggestions = [[sugg for sugg in res.results if sugg.entity_id in res.suggestions][0]
                                         for res in result.iteration_results or []]
         print(f"Iteration result for top suggestion: {filtered_results_suggestions}")
 
     def _compose_layout(self, charts: dict) -> alt.VConcatChart:
-        top = alt.hconcat(charts["metric_evolution"], charts["target_successes"])
+        top = alt.hconcat(charts["metric_evolution"], charts["n_hits"])
         bottom_charts = [charts["consecutive_failures"]]
         if "suggested_labels" in charts:
             bottom_charts.append(charts["suggested_labels"])
@@ -202,14 +205,15 @@ class ActiveLearningSingleSimulationResult:
             len(getattr(result, "iteration_results", []) or []),
             len(getattr(result, "iteration_metrics_total", []) or []),
             len(getattr(result, "iteration_metrics_suggestions", []) or []),
-            len(getattr(result, "iteration_target_successes", []) or []),
+            len(getattr(result, "iteration_hits", []) or []),
             len(getattr(result, "iteration_consecutive_failures", []) or []),
         ]
         n_rounds = max(n_rounds_candidates) if any(n_rounds_candidates) else 0
 
         iteration_metrics_total = [m.mean for m in (result.iteration_metrics_total or [])[:n_rounds]]
         iteration_metrics_suggestions = [m.mean for m in (result.iteration_metrics_suggestions or [])[:n_rounds]]
-        iteration_target_successes = (result.iteration_target_successes or [])[:n_rounds]
+        iteration_hits = (result.iteration_hits or [])[:n_rounds]
+        n_iteration_hits = list(map(len, iteration_hits))
         iteration_consecutive_failures = (result.iteration_consecutive_failures or [])[:n_rounds]
         iteration_results = (result.iteration_results or [])[:n_rounds]
 
@@ -217,11 +221,11 @@ class ActiveLearningSingleSimulationResult:
             "metric_evolution": al_plots.build_metric_evolution_chart(
                 iteration_metrics_total=list(iteration_metrics_total),
                 iteration_metrics_suggestions=list(iteration_metrics_suggestions),
-                iteration_target_successes=list(iteration_target_successes),
+                n_iteration_hits=n_iteration_hits,
                 metric_name=metric_name,
             ),
-            "target_successes": al_plots.build_target_successes_chart(
-                iteration_target_successes=list(iteration_target_successes),
+            "n_hits": al_plots.build_n_hits_chart(
+                n_iteration_hits=n_iteration_hits,
             ),
             "consecutive_failures": al_plots.build_consecutive_failures_chart(
                 iteration_consecutive_failures=list(iteration_consecutive_failures),
@@ -260,7 +264,9 @@ class ActiveLearningMultipleSimulationResult:
         for result in results:
             assert first_result.al_campaign_config.embedder_name == result.al_campaign_config.embedder_name, "Embedder config must be the same"
             assert first_result.al_campaign_config.optimization_mode == result.al_campaign_config.optimization_mode, "Optimization mode must be the same"
-            assert first_result.al_simulation_config.convergence_config.target_successes == result.al_simulation_config.convergence_config.target_successes, "Simulation configs must be the same"
+            assert first_result.al_simulation_config.convergence_config.n_hits == result.al_simulation_config.convergence_config.n_hits, "Simulation configs must be the same"
+            assert len(first_result.simulation_result.potential_hits) == len(
+                result.simulation_result.potential_hits), "Potential hits must be the same"
 
     @classmethod
     def from_json(cls, path: Path) -> ActiveLearningMultipleSimulationResult:
@@ -274,20 +280,25 @@ class ActiveLearningMultipleSimulationResult:
             ]
             return cls(results)
 
-    def embedder_name(self):
+    def embedder_name(self) -> str:
         return self.simulation_results[0].al_campaign_config.embedder_name
 
-    def model_type(self):
+    def model_type(self) -> ActiveLearningModelType:
         return self.simulation_results[0].al_campaign_config.model_type
 
+    def potential_hits(self) -> List[str]:
+        return self.simulation_results[0].simulation_result.potential_hits
+
     def get_best_simulation(self):
-        return max(self.simulation_results, key=lambda ssr: ssr.simulation_result.iteration_target_successes)
+        return max(self.simulation_results,
+                   key=lambda ssr: list(map(len, ssr.simulation_result.iteration_hits)))
 
     def get_worst_simulation(self):
-        return min(self.simulation_results, key=lambda ssr: ssr.simulation_result.iteration_target_successes)
+        return min(self.simulation_results,
+                   key=lambda ssr: list(map(len, ssr.simulation_result.iteration_hits)))
 
     def get_aggregated_hits(self):
-        return sum([sum(ssr.simulation_result.iteration_target_successes) for ssr in self.simulation_results])
+        return sum([sum(list(map(len, ssr.simulation_result.iteration_hits or []))) for ssr in self.simulation_results])
 
     def __get_aggreged_unique_hits(self):
         raise NotImplementedError  # TODO Needs to use the simulation dataset
@@ -344,8 +355,8 @@ class ActiveLearningMultipleSimulationResult:
                           0].al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE
         metric_name = "Accuracy" if is_discrete else "RMSE"
 
-        per_sim_target_successes = [
-            list(ssr.simulation_result.iteration_target_successes or [])
+        per_sim_n_hits = [
+            list(map(len, ssr.simulation_result.iteration_hits or []))
             for ssr in self.simulation_results
         ]
         per_sim_metrics_total = [
@@ -354,13 +365,14 @@ class ActiveLearningMultipleSimulationResult:
         ]
         per_sim_is_success = [ssr.is_success() for ssr in self.simulation_results]
 
-        target_threshold = self.simulation_results[0].al_simulation_config.convergence_config.target_successes
+        n_hits_threshold = self.simulation_results[0].al_simulation_config.convergence_config.n_hits or int(
+            np.inf)  # No threshold if it was None
         max_iterations = max((len(m) for m in per_sim_metrics_total), default=0)
         success_count = sum(1 for s in per_sim_is_success if s)
 
         convergence_iterations, _, _ = al_plots._compute_convergence_stats(
-            per_sim_target_successes=per_sim_target_successes,
-            target_successes_threshold=target_threshold,
+            per_sim_n_hits=per_sim_n_hits,
+            n_hits_threshold=n_hits_threshold,
         )
 
         best = self.get_best_simulation()
@@ -374,9 +386,9 @@ class ActiveLearningMultipleSimulationResult:
                 max_iterations=max_iterations,
             ),
             "mean_cumulative_successes": al_plots.build_mean_cumulative_successes_chart(
-                per_sim_target_successes=per_sim_target_successes,
+                per_sim_n_hits=per_sim_n_hits,
                 per_sim_is_success=per_sim_is_success,
-                target_threshold=target_threshold,
+                target_threshold=n_hits_threshold,
             ),
             "mean_metric_evolution": al_plots.build_mean_metric_evolution_chart(
                 per_sim_metrics_total=per_sim_metrics_total,
@@ -397,7 +409,7 @@ class ActiveLearningMultipleSimulationResult:
                                          first.al_campaign_config.optimization_mode),
             "n_simulations": len(self.simulation_results),
             "n_successful": sum(1 for ssr in self.simulation_results if ssr.is_success()),
-            "target_successes_threshold": first.al_simulation_config.convergence_config.target_successes,
+            "n_hits_threshold": first.al_simulation_config.convergence_config.n_hits,
             "is_discrete": first.al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE,
             "discrete_targets": first.al_campaign_config.discrete_targets,
         }

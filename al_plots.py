@@ -27,15 +27,15 @@ def _align_iteration_lengths(*lists: Optional[List]) -> Tuple[int, List[List]]:
 
 
 def _compute_convergence_stats(
-    per_sim_target_successes: List[List[int]],
-    target_successes_threshold: int,
+    per_sim_n_hits: List[List[int]],
+    n_hits_threshold: int,
 ) -> Tuple[List[int], Optional[float], Optional[float]]:
     convergence_iterations: List[int] = []
-    for successes in per_sim_target_successes:
+    for successes in per_sim_n_hits:
         if not successes:
             continue
         cumsum = np.cumsum(successes)
-        converged_at = np.where(cumsum >= target_successes_threshold)[0]
+        converged_at = np.where(cumsum >= n_hits_threshold)[0]
         if len(converged_at) > 0:
             convergence_iterations.append(int(converged_at[0]) + 1)
     if not convergence_iterations:
@@ -50,13 +50,13 @@ def _compute_convergence_stats(
 def build_metric_evolution_chart(
     iteration_metrics_total: List[float],
     iteration_metrics_suggestions: List[float],
-    iteration_target_successes: List[int],
+    n_iteration_hits: List[int],
     metric_name: str,
 ) -> alt.LayerChart:
     n, (total, suggestions, successes) = _align_iteration_lengths(
         iteration_metrics_total,
         iteration_metrics_suggestions,
-        iteration_target_successes,
+        n_iteration_hits,
     )
     iterations = list(range(1, n + 1))
 
@@ -103,10 +103,10 @@ def build_metric_evolution_chart(
     )
 
 
-def build_target_successes_chart(iteration_target_successes: List[int]) -> alt.LayerChart:
-    successes = iteration_target_successes or []
-    n = len(successes)
-    iterations = list(range(1, n + 1))
+def build_n_hits_chart(n_iteration_hits: List[int]) -> alt.LayerChart:
+    successes = n_iteration_hits or []
+    n_iterations = len(successes)
+    iterations = list(range(1, n_iterations + 1))
     cumulative = np.cumsum(successes).tolist() if successes else []
 
     df = pd.DataFrame(
@@ -296,20 +296,20 @@ def build_performance_summary_chart(
 
 
 def build_mean_cumulative_successes_chart(
-    per_sim_target_successes: List[List[int]],
+    per_sim_n_hits: List[List[int]],
     per_sim_is_success: List[bool],
     target_threshold: int,
 ) -> alt.LayerChart:
-    if not per_sim_target_successes:
+    if not per_sim_n_hits:
         return alt.layer(alt.Chart(pd.DataFrame({"x": [], "y": []})).mark_line()).properties(
             title="Target Discovery Progress", height=320
         )
 
-    max_iter = max(len(s) for s in per_sim_target_successes)
+    max_iter = max(len(s) for s in per_sim_n_hits)
     iterations = np.arange(1, max_iter + 1)
 
     padded = np.array(
-        [list(s) + [0] * (max_iter - len(s)) for s in per_sim_target_successes],
+        [list(s) + [0] * (max_iter - len(s)) for s in per_sim_n_hits],
         dtype=float,
     )
     cumulative = np.cumsum(padded, axis=1)
