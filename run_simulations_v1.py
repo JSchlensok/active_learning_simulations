@@ -8,7 +8,7 @@ from al_simulator import ActiveLearningMultipleSimulationResult, get_simulator
 
 
 class ExperimentConstants:
-    n_rounds: int = 2  # TODO 5
+    n_rounds: int = 5
     result_dir: Path = Path("simulation_v1_results/")
 
 
@@ -25,7 +25,12 @@ class ExperimentParametersV1(BaseModel):
 def _create_experiment_params():
     experiment_params = []
     dataset_ids = ALSimulatorDataset.all()
-    embedder_names = [CommonEmbedder.ONE_HOT_ENCODING.value]#, CommonEmbedder.ProtT5.value]
+    embedder_names = [
+        CommonEmbedder.ESM_8M.value,
+        CommonEmbedder.ESM2_650M.value,
+        CommonEmbedder.ONE_HOT_ENCODING.value,
+        CommonEmbedder.ProtT5.value,
+    ]
     model_types = [ActiveLearningModelType.GAUSSIAN_PROCESS, ActiveLearningModelType.FNN_MCD,
                    ActiveLearningModelType.RANDOM]
     for dataset_id in dataset_ids:
@@ -34,11 +39,11 @@ def _create_experiment_params():
                 experiment_params.append(
                     ExperimentParametersV1(dataset_id=dataset_id, embedder_name=embedder_name, model_type=model_type))
     # TODO DEBUG
-    experiment_params = [
-        ExperimentParametersV1(dataset_id=ALSimulatorDataset.SCL,
-                               model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
-                               embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
-    ]
+    #experiment_params = [
+    #    ExperimentParametersV1(dataset_id=ALSimulatorDataset.SCL,
+    #                           model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
+    #                           embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
+    #]
     return experiment_params
 
 
