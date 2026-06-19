@@ -7,10 +7,9 @@ dependencies = [
     "pandas-stubs==2.3.3.251201",
     "altair>=5.3",
     "pandas>=2.2",
-    "numpy>=2.4.6", # TODO REMOVE AFTER UPDATING DEPENDENCIES
     "streamlit>=1.36",
     "vl-convert-python>=1.6",
-    "biocentral-api @ git+https://github.com/biocentral/biocentral_api.git@ab162ec16eb5f85d298e2180d6ada13bef2d7d57#subdirectory=python",
+    "biocentral-api @ git+https://github.com/biocentral/biocentral_api.git@4157a4dfbb31ce514f56814d31cd90a021627312#subdirectory=python",
 ]
 
 [tool.uv.sources]
