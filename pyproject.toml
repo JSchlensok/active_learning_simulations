@@ -10,7 +10,7 @@ dependencies = [
     "numpy>=2.4.6", # TODO REMOVE AFTER UPDATING DEPENDENCIES
     "streamlit>=1.36",
     "vl-convert-python>=1.6",
-    "biocentral-api @ git+https://github.com/biocentral/biocentral_api.git@fc996eedd7b3b6237d9bb7805ab06affc7d99c24#subdirectory=python",
+    "biocentral-api @ git+https://github.com/biocentral/biocentral_api.git@ab162ec16eb5f85d298e2180d6ada13bef2d7d57#subdirectory=python",
 ]
 
 [tool.uv.sources]

@@ -8,6 +8,9 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Dict, List, Optional
+from biotrainer_vis import BiotrainerChart
+from biotrainer_core.input_files import read_FASTA
+from biotrainer_core.data_classes import SequenceData
 
 import streamlit as st
 import pandas as pd
@@ -26,6 +29,12 @@ RESULTS_DIR = Path("simulation_v1_results")
 COMPRESSED_DATA_PATH = RESULTS_DIR / "compressed_dashboard_data.json"
 
 st.set_page_config(page_title="AL Simulation Dashboard", layout="wide")
+
+
+@st.cache_data(show_spinner=True)
+def _load_dataset_sequences(selected_dataset: str) -> List[SequenceData]:
+    al_sim_dataset_path = ALSimulatorDataset[selected_dataset].to_path()
+    return read_FASTA(al_sim_dataset_path)
 
 
 @st.cache_data(show_spinner=False)
@@ -270,6 +279,22 @@ def _render_header_from_compressed(exp: DashboardExperimentData) -> None:
         st.caption(f"Discrete targets: {', '.join(summary['discrete_targets'])}")
 
 
+def _render_dataset_tab(selected_dataset: str, exps):
+    potential_hits = exps[0].potential_hits
+    n_potential_hits = sum(map(len, potential_hits))
+    st.metric(f"Number of potential hits", value=n_potential_hits,
+              help="Total number of potential hits in the dataset given the campaign configuration.")
+    dataset_sequences = _load_dataset_sequences(selected_dataset)
+    df = pd.DataFrame([seq.model_dump() for seq in dataset_sequences])
+    df = df.drop(columns=['attributes', 'embedding', 'mask', 'set'], errors='ignore')
+
+    st.markdown(f"**Simulation Data**")
+    st.dataframe(df)
+
+    biotrainer_chart = BiotrainerChart.label_distribution(dataset_sequences)
+    st.altair_chart(biotrainer_chart.chart, use_container_width=True)
+
+
 # ---------------------------------------------------------------------------
 # Sidebar
 # ---------------------------------------------------------------------------
@@ -372,10 +397,7 @@ if compressed_data:
         _render_comparison_from_compressed(subset)
 
     with main_tabs[2]:
-        potential_hits = exps[0].potential_hits
-        n_potential_hits = sum(map(len, potential_hits))
-        st.metric(f"Number of potential hits", value=n_potential_hits,
-                    help="Total number of potential hits in the dataset given the campaign configuration.")
+        _render_dataset_tab(selected_dataset, exps)
 
 else:
     st.error(f"Compressed data file not found at `{COMPRESSED_DATA_PATH}`. Please run `compress_reports.py` first.")
