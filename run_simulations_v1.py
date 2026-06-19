@@ -34,11 +34,11 @@ def _create_experiment_params():
                 experiment_params.append(
                     ExperimentParametersV1(dataset_id=dataset_id, embedder_name=embedder_name, model_type=model_type))
     # TODO DEBUG
-    #experiment_params = [
-    #    ExperimentParametersV1(dataset_id=ALSimulatorDataset.PHOT,
-    #                           model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
-    #                           embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
-    #]
+    experiment_params = [
+        ExperimentParametersV1(dataset_id=ALSimulatorDataset.SCL,
+                               model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
+                               embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
+    ]
     return experiment_params
 
 
@@ -47,7 +47,8 @@ def _run_experiment(experiment_params: ExperimentParametersV1):
         ExperimentConstants.result_dir.mkdir(parents=True, exist_ok=True)
 
     save_dir = ExperimentConstants.result_dir / experiment_params.to_file_name()
-    if save_dir.exists():
+    use_save = True
+    if use_save and save_dir.exists():
         sim_result = ActiveLearningMultipleSimulationResult.from_json(save_dir)
     else:
         al_simulator = get_simulator(experiment_params.dataset_id)

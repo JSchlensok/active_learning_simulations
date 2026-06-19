@@ -164,8 +164,9 @@ def _render_single_from_compressed(sim_data, summary: dict) -> None:
         st.markdown(f"- **Total iterations:** {sim_data.iteration_results_count}")
         st.markdown(f"- **iteration_metrics_total:** `{sim_data.iteration_metrics_total}`")
         st.markdown(f"- **iteration_metrics_suggestions:** `{sim_data.iteration_metrics_suggestions}`")
-        st.markdown(f"- **n_iteration_hits:** `{n_iteration_hits}`")
         st.markdown(f"- **iteration_consecutive_failures:** `{sim_data.iteration_consecutive_failures}`")
+        st.markdown(f"- **n_iteration_hits:** `{n_iteration_hits}`")
+        st.markdown(f"- **iteration_hits:** `{sim_data.iteration_hits}`")
 
 
 def _extract_consecutive_failures_threshold(stop_reasons: List[str]) -> Optional[int]:
@@ -280,17 +281,23 @@ def _render_header_from_compressed(exp: DashboardExperimentData) -> None:
 
 
 def _render_dataset_tab(selected_dataset: str, exps):
-    potential_hits = exps[0].potential_hits
-    n_potential_hits = sum(map(len, potential_hits))
+    potential_hits = set(exps[0].potential_hits)
+    n_potential_hits = len(potential_hits)
     st.metric(f"Number of potential hits", value=n_potential_hits,
               help="Total number of potential hits in the dataset given the campaign configuration.")
     dataset_sequences = _load_dataset_sequences(selected_dataset)
     df = pd.DataFrame([seq.model_dump() for seq in dataset_sequences])
     df = df.drop(columns=['attributes', 'embedding', 'mask', 'set'], errors='ignore')
 
-    st.markdown(f"**Simulation Data**")
-    st.dataframe(df)
+    st.markdown(f"**Simulation Data**",
+                help="Dataframe of the simulation dataset (highlighted rows are potential hits).")
 
+    def highlight_potential_hits(row):
+        if row['seq_id'] in potential_hits:
+            return ['background-color: #90EE90'] * len(row)
+        return [''] * len(row)
+
+    st.dataframe(df.style.apply(highlight_potential_hits, axis=1))
     biotrainer_chart = BiotrainerChart.label_distribution(dataset_sequences)
     st.altair_chart(biotrainer_chart.chart, use_container_width=True)
 
@@ -345,7 +352,7 @@ if compressed_data:
         st.markdown(f"**Total Sequences:** {n_sim_data}",
                     help="Total number of sequences in the simulation dataset.")
         potential_hits = exps[0].potential_hits
-        n_potential_hits = sum(map(len, potential_hits))
+        n_potential_hits = len(potential_hits)
         n_potential_hits_percent = round(100 * n_potential_hits / n_sim_data, 2)
         st.markdown(f"**Number of potential hits:** {n_potential_hits} ({n_potential_hits_percent} %)",
                     help="Total number of potential hits in the dataset given the campaign configuration.")
