@@ -9,7 +9,7 @@ dependencies = [
     "pandas>=2.2",
     "streamlit>=1.36",
     "vl-convert-python>=1.6",
-    "biocentral-api @ git+https://github.com/biocentral/biocentral_api.git@4157a4dfbb31ce514f56814d31cd90a021627312#subdirectory=python",
+    "biocentral-api @ git+https://github.com/biocentral/biocentral_api.git@4c08905b0b295144d629b1560e3a1cc071f3461d#subdirectory=python",
 ]
 
 [tool.uv.sources]

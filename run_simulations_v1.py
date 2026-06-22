@@ -29,6 +29,7 @@ def _create_experiment_params():
         CommonEmbedder.ESM_8M.value,
         CommonEmbedder.ESM2_650M.value,
         CommonEmbedder.ONE_HOT_ENCODING.value,
+        CommonEmbedder.LENGTH_EMBEDDER.value,
         CommonEmbedder.ProtT5.value,
     ]
     model_types = [ActiveLearningModelType.GAUSSIAN_PROCESS, ActiveLearningModelType.FNN_MCD,
