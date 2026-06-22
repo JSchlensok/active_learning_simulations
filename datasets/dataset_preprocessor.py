@@ -27,7 +27,8 @@ def main():
     raw_paths = [Path("raw/amylase_pet.fasta"),
                  Path("raw/biotrainer_meltome_mixed.fasta"),
                  Path("raw/scl.fasta"),
-                 Path("raw/PHOT_CHLRE_Chen_2023.csv")
+                 Path("raw/PHOT_CHLRE_Chen_2023.csv"),
+                 Path("raw/exotox_merged.fasta"),
                  ]
     seq_length_limit = 2000
     for raw_path in raw_paths:

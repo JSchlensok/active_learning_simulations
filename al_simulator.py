@@ -90,38 +90,48 @@ class ActiveLearningFixedBaseConfig(BaseModel):
 
 
 def get_simulator(dataset_id: ALSimulatorDataset) -> ActiveLearningSimulator:
+    simulation_data = read_FASTA(dataset_id.to_path())
+    assert len(simulation_data) > 0, f"Simulation data for {dataset_id} is empty."
+    
     match dataset_id:
         case ALSimulatorDataset.MELTOME_MAXIMIZE:
             meltome_base_config = ActiveLearningFixedBaseConfig(
                 dataset_id=dataset_id,
-                simulation_data=read_FASTA("datasets/biotrainer_meltome_mixed_max2000.fasta"),
+                simulation_data=simulation_data,
                 optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE)
             return ActiveLearningSimulator(al_base_config=meltome_base_config)
         case ALSimulatorDataset.MELTOME_MINIMIZE:
             meltome_base_config = ActiveLearningFixedBaseConfig(
                 dataset_id=dataset_id,
-                simulation_data=read_FASTA("datasets/biotrainer_meltome_mixed_max2000.fasta"),
+                simulation_data=simulation_data,
                 optimization_mode=ActiveLearningOptimizationMode.MINIMIZE)
             return ActiveLearningSimulator(al_base_config=meltome_base_config)
         case ALSimulatorDataset.SCL:
             scl_base_config = ActiveLearningFixedBaseConfig(
                 dataset_id=dataset_id,
-                simulation_data=read_FASTA("datasets/scl_max2000.fasta"),
+                simulation_data=simulation_data,
                 optimization_mode=ActiveLearningOptimizationMode.DISCRETE,
                 discrete_targets=["Peroxisome"])
             return ActiveLearningSimulator(al_base_config=scl_base_config)
         case ALSimulatorDataset.AMYLASE:
             amylase_base_config = ActiveLearningFixedBaseConfig(
                 dataset_id=dataset_id,
-                simulation_data=read_FASTA("datasets/amylase_pet_max2000.fasta"),
+                simulation_data=simulation_data,
                 optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE)
             return ActiveLearningSimulator(al_base_config=amylase_base_config)
         case ALSimulatorDataset.PHOT:
             phot_base_config = ActiveLearningFixedBaseConfig(
                 dataset_id=dataset_id,
-                simulation_data=read_FASTA("datasets/PHOT_CHLRE_Chen_2023_max2000.fasta"),
+                simulation_data=simulation_data,
                 optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE)
             return ActiveLearningSimulator(al_base_config=phot_base_config)
+        case ALSimulatorDataset.EXOTOX:
+            exotox_base_config = ActiveLearningFixedBaseConfig(
+                dataset_id=dataset_id,
+                simulation_data=simulation_data,
+                discrete_targets=["EXOTOXIN"],
+                optimization_mode=ActiveLearningOptimizationMode.DISCRETE)
+            return ActiveLearningSimulator(al_base_config=exotox_base_config)
 
 
 class ActiveLearningSimulator:

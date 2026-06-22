@@ -8,6 +8,7 @@ class ALSimulatorDataset(Enum):
     SCL = auto()
     AMYLASE = auto()
     PHOT = auto()
+    EXOTOX = auto()
 
     @staticmethod
     def all():
@@ -15,7 +16,8 @@ class ALSimulatorDataset(Enum):
                 ALSimulatorDataset.MELTOME_MINIMIZE,
                 ALSimulatorDataset.SCL,
                 ALSimulatorDataset.AMYLASE,
-                ALSimulatorDataset.PHOT]
+                ALSimulatorDataset.PHOT,
+                ALSimulatorDataset.EXOTOX]
 
     def to_path(self, path_override: Optional[Dict[str, str]] = None) -> str:
         path = None
@@ -29,5 +31,6 @@ class ALSimulatorDataset(Enum):
             ALSimulatorDataset.SCL.name: "datasets/scl_max2000.fasta",
             ALSimulatorDataset.AMYLASE.name: "datasets/amylase_pet_max2000.fasta",
             ALSimulatorDataset.PHOT.name: "datasets/PHOT_CHLRE_Chen_2023_max2000.fasta",
+            ALSimulatorDataset.EXOTOX.name: "datasets/exotox_merged_max2000.fasta",
         }
         return default_dict[self.name]
