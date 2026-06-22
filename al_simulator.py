@@ -52,6 +52,7 @@ class DashboardExperimentData(BaseModel):
 
 
 class DashboardCompressedData(BaseModel):
+    run_name: str
     experiments: List[DashboardExperimentData]
 
 

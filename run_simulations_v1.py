@@ -68,11 +68,12 @@ def _run_experiment(experiment_params: ExperimentParametersV1):
 
 
 def main():
+    run_name = "vanilla_run1"
     experiment_params = _create_experiment_params()
     for experiment_param in experiment_params:
         _run_experiment(experiment_param)
     print("All simulations completed. Compressing reports...")
-    compress_reports()
+    compress_reports(run_name=run_name)
 
 
 if __name__ == "__main__":

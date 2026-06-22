@@ -5,7 +5,6 @@ Run with:
 """
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 from biotrainer_vis import BiotrainerChart
@@ -26,9 +25,13 @@ from al_simulator import (
 )
 
 RESULTS_DIR = Path("simulation_v1_results")
-COMPRESSED_DATA_PATH = RESULTS_DIR / "compressed_dashboard_data.json"
 
 st.set_page_config(page_title="AL Simulation Dashboard", layout="wide")
+
+
+@st.cache_data(show_spinner=True)
+def _get_run_files():
+    return list(RESULTS_DIR.glob("*.json"))
 
 
 @st.cache_data(show_spinner=True)
@@ -38,14 +41,16 @@ def _load_dataset_sequences(selected_dataset: str) -> List[SequenceData]:
 
 
 @st.cache_data(show_spinner=False)
-def _load_compressed() -> Optional[DashboardCompressedData]:
-    if not COMPRESSED_DATA_PATH.exists():
-        return None
-    try:
-        return DashboardCompressedData.model_validate_json(COMPRESSED_DATA_PATH.read_text())
-    except Exception as exc:
-        st.sidebar.error(f"Failed to load compressed data: {exc}")
-        return None
+def _load_compressed(run_file_paths: List[Path]) -> Dict[str, DashboardCompressedData]:
+    result = {}  # name to compressed data
+    for path in run_file_paths:
+        try:
+            compressed_data = DashboardCompressedData.model_validate_json(path.read_text())
+            result[compressed_data.run_name] = compressed_data
+        except Exception as exc:
+            st.sidebar.error(f"Failed to load compressed data: {exc}")
+            continue
+    return result
 
 
 @st.cache_data(show_spinner=True)
@@ -347,7 +352,6 @@ def _render_cross_dataset_comparison(ds_groups: Dict[str, List[DashboardExperime
     st.bar_chart(cross_dataset_data, stack=False)
 
 
-
 def main():
     # ---------------------------------------------------------------------------
     # Sidebar
@@ -359,109 +363,113 @@ def main():
     # ---------------------------------------------------------------------------
     st.title("Active Learning Simulation Dashboard")
 
-    compressed_data = _load_compressed()
-
-    if compressed_data:
-        st.sidebar.success("Loaded pre-calculated results.")
-
-        # Group by dataset
-        ds_groups: Dict[str, List[DashboardExperimentData]] = {}
-        for exp in compressed_data.experiments:
-            dataset_name = exp.dataset_id.name
-            if dataset_name not in ds_groups:
-                ds_groups[dataset_name] = []
-            ds_groups[dataset_name].append(exp)
-
-        selected_dataset = st.sidebar.selectbox("Select Dataset", sorted(ds_groups.keys()))
-        al_simulator = _load_simulator(selected_dataset)
-        base_config = al_simulator.base_config
-        simulation_config = al_simulator.get_simulation_config()
-        exps = ds_groups[selected_dataset]
-
-        # Display configuration summary in sidebar
-        st.sidebar.markdown("---")
-        st.sidebar.subheader("Simulation Setup")
-
-        with st.sidebar.expander("Base Configuration", expanded=True):
-            st.markdown(
-                f"**Optimization Mode:** {base_config.optimization_mode.value}",
-                help=f"The goal of this simulation: {base_config.explain_optimization_mode()}")
-
-            if base_config.target_lb is not None:
-                st.markdown(f"**Target Lower Bound:** {base_config.target_lb}")
-            if base_config.target_ub is not None:
-                st.markdown(f"**Target Upper Bound:** {base_config.target_ub}")
-            if base_config.target_value is not None:
-                st.markdown(f"**Target Value:** {base_config.target_value}")
-            if base_config.discrete_targets:
-                st.markdown(f"**Discrete Targets:** {', '.join(base_config.discrete_targets)}")
-
-            n_sim_data = len(base_config.simulation_data)
-            st.markdown(f"**Total Sequences:** {n_sim_data}",
-                        help="Total number of sequences in the simulation dataset.")
-            potential_hits = exps[0].potential_hits
-            n_potential_hits = len(potential_hits)
-            n_potential_hits_percent = round(100 * n_potential_hits / n_sim_data, 2)
-            st.markdown(f"**Number of potential hits:** {n_potential_hits} ({n_potential_hits_percent} %)",
-                        help="Total number of potential hits in the dataset given the campaign configuration.")
-
-        with st.sidebar.expander("Simulation Configuration", expanded=True):
-            if simulation_config.n_start is not None:
-                st.markdown(f"**Initial Training Sequences:** {simulation_config.n_start}",
-                            help="These sequences are chosen at random from the total sequences (using the simulation seed).")
-            if simulation_config.start_ids is not None:
-                st.markdown(f"**Start IDs Count:** {len(simulation_config.start_ids)}",
-                            help="These sequences and their labels are used to start the simulation.")
-
-            st.markdown(f"**Suggestions per Iteration:** {simulation_config.n_suggestions_per_iteration}",
-                        help="Number of suggestions selected per iteration of each campaign.")
-
-            conv_cfg = simulation_config.convergence_config
-            st.markdown("**Convergence Criteria:**", help="Determines when the simulated campaign should stop.")
-            if hasattr(conv_cfg, 'n_hits') and conv_cfg.n_hits is not None:
-                st.markdown(f"  - Number of Hits: {conv_cfg.n_hits}",
-                            help="Stops the campaign when this number of targets (hits) is found.")
-            if hasattr(conv_cfg, 'max_iterations') and conv_cfg.max_iterations is not None:
-                st.markdown(f"  - Max Iterations: {conv_cfg.max_iterations}",
-                            help="Always stops the campaign after this number of iterations.")
-            if hasattr(conv_cfg, 'max_consecutive_failures') and conv_cfg.max_consecutive_failures is not None:
-                st.markdown(f"  - Max Consecutive Failures: {conv_cfg.max_consecutive_failures}",
-                            help="Stops the campaign after this number of consecutive failures (no hits found in an iteration).")
-
-        subset = ds_groups[selected_dataset]
-
-        main_tabs = st.tabs(["Individual Simulation Result", "Comparison", "Dataset Statistics"])
-
-        with main_tabs[0]:  # Individual simulation result
-            exp_names = {e.name: e for e in subset}
-            selected_name = st.selectbox("Select Experiment", sorted(exp_names.keys()))
-            exp = exp_names[selected_name]
-
-            _render_header(exp)
-
-            sub_tabs = st.tabs(["Aggregate", "Per-Simulation Drill-down"])
-            with sub_tabs[0]:  # Simulations Aggregate
-                _render_simulations_aggregate(exp)
-            with sub_tabs[1]:  # Per-simulation drill-down
-                sim_labels = {s.label: s for s in exp.single_sims}
-                selected_label = st.selectbox("Simulation run", sorted(sim_labels.keys()))
-                sim_data = sim_labels[selected_label]
-                _render_single_simulation(sim_data, exp.summary)
-
-        with main_tabs[1]:  # Inner simulation comparison (model/embedder)
-            _render_inner_simulation_comparison(subset)
-
-        with main_tabs[2]:  # Dataset statistics
-            _render_dataset_tab(selected_dataset, exps)
-
-        st.divider()
-
-        # Render cross-dataset comparison
-        _render_cross_dataset_comparison(ds_groups)
-
+    _available_runs = _get_run_files()
+    all_compressed_data = _load_compressed(_available_runs)
+    if len(all_compressed_data) > 0:
+        st.sidebar.success("Loaded all results.")
     else:
-        st.error(f"Compressed data file not found at `{COMPRESSED_DATA_PATH}`. Please run `compress_reports.py` first.")
+        st.error(f"Compressed data files not found at `{RESULTS_DIR}`. Please run `compress_reports.py` first.")
         st.stop()
+
+    selected_run = st.sidebar.selectbox("Select Run", sorted(all_compressed_data.keys()))
+
+    compressed_data = all_compressed_data[selected_run]
+
+    # Group by dataset
+    ds_groups: Dict[str, List[DashboardExperimentData]] = {}
+    for exp in compressed_data.experiments:
+        dataset_name = exp.dataset_id.name
+        if dataset_name not in ds_groups:
+            ds_groups[dataset_name] = []
+        ds_groups[dataset_name].append(exp)
+
+    selected_dataset = st.sidebar.selectbox("Select Dataset", sorted(ds_groups.keys()))
+    al_simulator = _load_simulator(selected_dataset)
+    base_config = al_simulator.base_config
+    simulation_config = al_simulator.get_simulation_config()
+    exps = ds_groups[selected_dataset]
+
+    # Display configuration summary in sidebar
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Simulation Setup")
+
+    with st.sidebar.expander("Base Configuration", expanded=True):
+        st.markdown(
+            f"**Optimization Mode:** {base_config.optimization_mode.value}",
+            help=f"The goal of this simulation: {base_config.explain_optimization_mode()}")
+
+        if base_config.target_lb is not None:
+            st.markdown(f"**Target Lower Bound:** {base_config.target_lb}")
+        if base_config.target_ub is not None:
+            st.markdown(f"**Target Upper Bound:** {base_config.target_ub}")
+        if base_config.target_value is not None:
+            st.markdown(f"**Target Value:** {base_config.target_value}")
+        if base_config.discrete_targets:
+            st.markdown(f"**Discrete Targets:** {', '.join(base_config.discrete_targets)}")
+
+        n_sim_data = len(base_config.simulation_data)
+        st.markdown(f"**Total Sequences:** {n_sim_data}",
+                    help="Total number of sequences in the simulation dataset.")
+        potential_hits = exps[0].potential_hits
+        n_potential_hits = len(potential_hits)
+        n_potential_hits_percent = round(100 * n_potential_hits / n_sim_data, 2)
+        st.markdown(f"**Number of potential hits:** {n_potential_hits} ({n_potential_hits_percent} %)",
+                    help="Total number of potential hits in the dataset given the campaign configuration.")
+
+    with st.sidebar.expander("Simulation Configuration", expanded=True):
+        if simulation_config.n_start is not None:
+            st.markdown(f"**Initial Training Sequences:** {simulation_config.n_start}",
+                        help="These sequences are chosen at random from the total sequences (using the simulation seed).")
+        if simulation_config.start_ids is not None:
+            st.markdown(f"**Start IDs Count:** {len(simulation_config.start_ids)}",
+                        help="These sequences and their labels are used to start the simulation.")
+
+        st.markdown(f"**Suggestions per Iteration:** {simulation_config.n_suggestions_per_iteration}",
+                    help="Number of suggestions selected per iteration of each campaign.")
+
+        conv_cfg = simulation_config.convergence_config
+        st.markdown("**Convergence Criteria:**", help="Determines when the simulated campaign should stop.")
+        if hasattr(conv_cfg, 'n_hits') and conv_cfg.n_hits is not None:
+            st.markdown(f"  - Number of Hits: {conv_cfg.n_hits}",
+                        help="Stops the campaign when this number of targets (hits) is found.")
+        if hasattr(conv_cfg, 'max_iterations') and conv_cfg.max_iterations is not None:
+            st.markdown(f"  - Max Iterations: {conv_cfg.max_iterations}",
+                        help="Always stops the campaign after this number of iterations.")
+        if hasattr(conv_cfg, 'max_consecutive_failures') and conv_cfg.max_consecutive_failures is not None:
+            st.markdown(f"  - Max Consecutive Failures: {conv_cfg.max_consecutive_failures}",
+                        help="Stops the campaign after this number of consecutive failures (no hits found in an iteration).")
+
+    subset = ds_groups[selected_dataset]
+
+    main_tabs = st.tabs(["Individual Simulation Result", "Comparison", "Dataset Statistics"])
+
+    with main_tabs[0]:  # Individual simulation result
+        exp_names = {e.name: e for e in subset}
+        selected_name = st.selectbox("Select Experiment", sorted(exp_names.keys()))
+        exp = exp_names[selected_name]
+
+        _render_header(exp)
+
+        sub_tabs = st.tabs(["Aggregate", "Per-Simulation Drill-down"])
+        with sub_tabs[0]:  # Simulations Aggregate
+            _render_simulations_aggregate(exp)
+        with sub_tabs[1]:  # Per-simulation drill-down
+            sim_labels = {s.label: s for s in exp.single_sims}
+            selected_label = st.selectbox("Simulation run", sorted(sim_labels.keys()))
+            sim_data = sim_labels[selected_label]
+            _render_single_simulation(sim_data, exp.summary)
+
+    with main_tabs[1]:  # Inner simulation comparison (model/embedder)
+        _render_inner_simulation_comparison(subset)
+
+    with main_tabs[2]:  # Dataset statistics
+        _render_dataset_tab(selected_dataset, exps)
+
+    st.divider()
+
+    # Render cross-dataset comparison
+    _render_cross_dataset_comparison(ds_groups)
+
 
 
 if __name__ == "__main__":

@@ -19,7 +19,7 @@ def parse_dataset_from_filename(fname: str) -> str:
     return "Unknown"
 
 
-def compress_reports():
+def compress_reports(run_name: str):
     if not RESULTS_DIR.exists():
         print(f"Directory {RESULTS_DIR} not found.")
         return
@@ -94,7 +94,7 @@ def compress_reports():
         )
         experiments.append(exp_data)
 
-    compressed = DashboardCompressedData(experiments=experiments)
+    compressed = DashboardCompressedData(run_name=run_name, experiments=experiments)
 
     with open(OUTPUT_FILE, "w") as f:
         f.write(compressed.model_dump_json(indent=4))
