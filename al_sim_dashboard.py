@@ -5,6 +5,7 @@ Run with:
 """
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 from biotrainer_vis import BiotrainerChart
@@ -293,11 +294,12 @@ def _render_header(exp: DashboardExperimentData) -> None:
         st.caption(f"Discrete targets: {', '.join(summary['discrete_targets'])}")
 
 
-def _render_dataset_tab(selected_dataset: str, exps):
+def _render_dataset_tab(selected_dataset: str, base_config, exps):
     potential_hits = set(exps[0].potential_hits)
     n_potential_hits = len(potential_hits)
-    st.metric(f"Number of potential hits", value=n_potential_hits,
-              help="Total number of potential hits in the dataset given the campaign configuration.")
+    n_potential_hits_percent = round(100 * n_potential_hits / len(base_config.simulation_data), 2)
+    st.metric(f"**Number of potential hits:**", value=f"{n_potential_hits} ({n_potential_hits_percent} %)",
+                help="Total number of potential hits in the dataset given the campaign configuration.")
     dataset_sequences = _load_dataset_sequences(selected_dataset)
     df = pd.DataFrame([seq.model_dump() for seq in dataset_sequences])
     df = df.drop(columns=['attributes', 'embedding', 'mask', 'set'], errors='ignore')
@@ -463,7 +465,7 @@ def main():
         _render_inner_simulation_comparison(subset)
 
     with main_tabs[2]:  # Dataset statistics
-        _render_dataset_tab(selected_dataset, exps)
+        _render_dataset_tab(selected_dataset, base_config, exps)
 
     st.divider()
 
