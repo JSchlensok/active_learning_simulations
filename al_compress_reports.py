@@ -8,7 +8,6 @@ from al_simulator import (
 )
 
 RESULTS_DIR = Path("simulation_v1_results")
-OUTPUT_FILE = RESULTS_DIR / "compressed_dashboard_data.json"
 
 
 def parse_dataset_from_filename(fname: str) -> str:
@@ -28,7 +27,7 @@ def compress_reports(run_name: str):
     experiments = []
 
     for path in json_files:
-        if path.name == OUTPUT_FILE.name:
+        if "compressed_dashboard" in path.name:
             continue
 
         print(f"Processing {path.name}...")
@@ -95,16 +94,9 @@ def compress_reports(run_name: str):
         experiments.append(exp_data)
 
     compressed = DashboardCompressedData(run_name=run_name, experiments=experiments)
+    OUTPUT_FILE = RESULTS_DIR / f"compressed_dashboard_data_{run_name}.json"
 
     with open(OUTPUT_FILE, "w") as f:
         f.write(compressed.model_dump_json(indent=4))
 
     print(f"Successfully created {OUTPUT_FILE} with {len(experiments)} experiments.")
-
-
-def main():
-    compress_reports()
-
-
-if __name__ == "__main__":
-    main()
