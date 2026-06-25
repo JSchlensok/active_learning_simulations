@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional, Set, Tuple, Callable
 from biotrainer_vis import BiotrainerChart
 from biotrainer_core.input_files import read_FASTA
 from biotrainer_core.data_classes import SequenceData
@@ -184,19 +184,50 @@ def _extract_consecutive_failures_threshold(stop_reasons: List[str]) -> Optional
     return None
 
 
-def _extract_unique_hits(exps) -> Set[str]:
+def _extract_unique_hits(exps: List[DashboardExperimentData]) -> Tuple[Set[str], float]:
+    """ Get all unique hits and the std. dev. of all iteration hits found via bootstrapping. """
     all_hits = sum(e.aggregated_hits for e in exps)
     all_iteration_hits = []
     for e in exps:
         single_sim_res = e.single_sims
         for single_sim in single_sim_res:
             for it_hit in single_sim.iteration_hits:
-                all_iteration_hits.extend(it_hit)
-    assert len(all_iteration_hits) == all_hits, \
+                all_iteration_hits.append(it_hit)
+
+    all_hits_flattened = [hit for sublist in all_iteration_hits for hit in sublist]
+    all_unique_hits = set(all_hits_flattened)
+    assert len(all_hits_flattened) == all_hits, \
         (f"Number of iteration hits ({len(all_iteration_hits)}) "
          f"does not match total hits ({all_hits})")  # TODO: Optimize compression
-    all_unique_hits = set(all_iteration_hits)
-    return all_unique_hits
+
+    # Bootstrap resampling over unique hits found to calculate std dev
+    n_bootstrap = 30
+    bootstrapped_n_unique_hits = []
+    rng = np.random.RandomState(42)
+
+    for _ in range(n_bootstrap):
+        # Resample with replacement
+        bootstrap_sample = rng.choice(len(all_iteration_hits), size=len(all_iteration_hits), replace=True)
+        bootstrap_iteration_hits = [all_iteration_hits[i] for i in bootstrap_sample]
+        bootstrap_iteration_hits_flattened = [hit for sublist in bootstrap_iteration_hits for hit in sublist]
+        bootstrap_unique_hits = set(bootstrap_iteration_hits_flattened)
+        bootstrap_n_unique_hits = len(bootstrap_unique_hits)
+        bootstrapped_n_unique_hits.append(bootstrap_n_unique_hits)
+
+    bootstrap_std = float(np.std(bootstrapped_n_unique_hits))
+
+    return all_unique_hits, bootstrap_std
+
+
+def _extract_average_hits_per_campaign(exps: List[DashboardExperimentData]) -> Tuple[float, float]:
+    all_single_sims = []
+    for e in exps:
+        for single_sim in e.single_sims:
+            all_single_sims.append(single_sim)
+    n_all_hits_list = [sum(list(map(len, single_sim.iteration_hits))) for single_sim in all_single_sims]
+    total_hits_mean = round(float(np.mean(n_all_hits_list)), 3)
+    total_hits_std = float(np.std(n_all_hits_list))
+    return total_hits_mean, total_hits_std
 
 
 def _render_inner_simulation_comparison(subset: List[DashboardExperimentData]) -> None:
@@ -225,10 +256,10 @@ def _render_inner_simulation_comparison(subset: List[DashboardExperimentData]) -
     for key, exps in groups.items():
         all_hits = sum(e.aggregated_hits for e in exps)
         all_suggestions = sum(e.aggregated_suggestions for e in exps)
-        all_unique_hits = _extract_unique_hits(exps)
+        all_unique_hits, unique_hits_std = _extract_unique_hits(exps)
 
         all_is_success = [s for e in exps for s in e.per_sim_is_success]
-        total_simulations = len(all_is_success)
+        total_campaigns = len(all_is_success)
 
         conv_speeds = []
         for e in exps:
@@ -241,15 +272,17 @@ def _render_inner_simulation_comparison(subset: List[DashboardExperimentData]) -
                         conv_speeds.append(int(converged_at[0]) + 1)
 
         avg_conv = np.mean(conv_speeds) if conv_speeds else None
-
+        avg_hits, _ = _extract_average_hits_per_campaign(exps)
         comparison_data.append({
             mode: key,
             "Total Hits": all_hits,
             "Unique Hits": len(all_unique_hits),
+            "Unique Hits Std. Dev.": f"{unique_hits_std:.2f}",
+            "Number of Campaigns": total_campaigns,
             "Total Suggestions": all_suggestions,
             "Hit Rate": f"{all_hits / all_suggestions:.2%}" if all_suggestions > 0 else "0%",
-            "Avg. Hits per Campaign": f"{all_hits / total_simulations:.2f}" if total_simulations > 0 else "0.00",
-            "Percentage of successful campaigns": f"{sum(all_is_success) / total_simulations:.1%}" if total_simulations > 0 else "0.0%",
+            "Avg. Hits per Campaign": f"{avg_hits:.2f}",
+            "Percentage of successful campaigns": f"{sum(all_is_success) / total_campaigns:.1%}" if total_campaigns > 0 else "0.0%",
             "Avg. Convergence Iteration": f"{avg_conv:.2f}" if avg_conv is not None else "N/A"
         })
 
@@ -299,7 +332,7 @@ def _render_dataset_tab(selected_dataset: str, base_config, exps):
     n_potential_hits = len(potential_hits)
     n_potential_hits_percent = round(100 * n_potential_hits / len(base_config.simulation_data), 2)
     st.metric(f"**Number of potential hits:**", value=f"{n_potential_hits} ({n_potential_hits_percent} %)",
-                help="Total number of potential hits in the dataset given the campaign configuration.")
+              help="Total number of potential hits in the dataset given the campaign configuration.")
     dataset_sequences = _load_dataset_sequences(selected_dataset)
     df = pd.DataFrame([seq.model_dump() for seq in dataset_sequences])
     df = df.drop(columns=['attributes', 'embedding', 'mask', 'set'], errors='ignore')
@@ -317,41 +350,151 @@ def _render_dataset_tab(selected_dataset: str, base_config, exps):
     st.altair_chart(biotrainer_chart.chart, use_container_width=True)
 
 
-def _calculate_cross_dataset_comparison_metric(ds_groups):
-    return {ds_name:
-                sum([ds_exp.aggregated_hits for ds_exp in ds_exps])
-            for ds_name, ds_exps in ds_groups.items()
-            }
+def _extract_cross_dataset_data(group_by: str, ds_groups: Dict[str, List[DashboardExperimentData]],
+                                dict_constructor: Callable):
+    cross_dataset_data = {}  # ds_name -> n unique hits
+    all_groupable = {}  # Model Name / Embedder Name -> Experiments
+
+    if group_by == "dataset":
+        for ds_name, ds_exps in ds_groups.items():
+            cross_dataset_data[ds_name] = dict_constructor(ds_exps)
+    else:
+        for ds_name, ds_exps in ds_groups.items():
+            for exp in ds_exps:
+                key = getattr(exp, group_by)
+                if group_by == "embedder" and exp.model == "RANDOM":
+                    continue  # Exclude random surrogate models from embedder comparison
+                if key not in all_groupable:
+                    all_groupable[key] = []
+                all_groupable[key].append(exp)
+
+        for key, exps in all_groupable.items():
+            cross_dataset_data[key] = dict_constructor(exps)
+
+    return cross_dataset_data
+
+
+def _plot_cross_dataset_data(cross_dataset_data: Dict, value_name: str):
+    import altair as alt
+    import pandas as pd
+
+    # Prepare data for plotting with error bars
+    plot_data = []
+    for key, values in cross_dataset_data.items():
+        if isinstance(values, dict) and "std" in values:
+            # Extract the main metric (first key that's not 'std')
+            metric_key = [k for k in values.keys() if k != "std"][0]
+            mean_value = values[metric_key]
+            std_value = values["std"]
+            plot_data.append({
+                "category": key,
+                "value": mean_value,
+                "lower": mean_value - std_value,
+                "upper": mean_value + std_value,
+                "std_value": std_value,
+            })
+        else:
+            plot_data.append({
+                "category": key,
+                "value": values,
+                "lower": values,
+                "upper": values
+            })
+
+    # Create DataFrame for the chart
+    df = pd.DataFrame(plot_data)
+
+    # Create point chart with error bars
+    points = alt.Chart(df).mark_bar(
+        size=100,
+        filled=True,
+    ).encode(
+        x=alt.X('category:N', title=None, axis=alt.Axis(labelAngle=-45)),
+        y=alt.Y('value:Q', title=value_name),
+        color=alt.Color('category:N',
+                        scale=alt.Scale(scheme='tableau10'),
+                        legend=None),
+        tooltip=[
+            alt.Tooltip('category:N', title='Category'),
+            alt.Tooltip('value:Q', title=value_name, format='.2f'),
+            alt.Tooltip('std_value:Q', title='Std Dev', format='.2f')
+        ]
+    )
+
+    # Create error bars
+    error_bars = alt.Chart(df).mark_errorbar(
+        color='black'
+    ).encode(
+        y=alt.Y('lower:Q', title=value_name),
+        y2=alt.Y2('upper:Q', title=None),
+        x=alt.X('category:N')
+    )
+
+    # Combine points and error bars
+    chart = (points + error_bars).properties(
+        width=600,
+        height=500
+    )
+
+    st.altair_chart(chart, use_container_width=True)
 
 
 def _render_cross_dataset_comparison(ds_groups: Dict[str, List[DashboardExperimentData]]):
     st.markdown("## Cross-dataset comparison")
-    mode = st.radio("Compare by", ["Surrogate Model", "Embedder"],
+    mode = st.radio("Compare by", ["Surrogate Model", "Embedder", "Dataset"],
                     key="CrossDatasetRadio", horizontal=True)
 
-    group_by = "model" if mode == "Surrogate Model" else "embedder"
+    group_by = "model" if mode == "Surrogate Model" else mode.lower()
 
-    cross_dataset_data = {}  # ds_name -> n unique hits
-    all_groupable = {}  # Model Name / Embedder Name -> Experiments
+    ### AVERAGE
+    def average_dict_constructor(exps):
+        average_hits, average_hits_std = _extract_average_hits_per_campaign(exps)
+        return {
+            "average_hits_per_campaign": average_hits,
+            "std": average_hits_std
+        }
 
-    for ds_name, ds_exps in ds_groups.items():
-        for exp in ds_exps:
-            key = getattr(exp, group_by)
-            if group_by == "embedder" and exp.model == "RANDOM":
-                continue  # Exclude random surrogate models from embedder comparison
-            if key not in all_groupable:
-                all_groupable[key] = []
-            all_groupable[key].append(exp)
+    cross_dataset_data_average = _extract_cross_dataset_data(group_by, ds_groups, average_dict_constructor)
 
-        for key, exps in all_groupable.items():
-            if key not in cross_dataset_data:
-                cross_dataset_data[key] = {}
-            cross_dataset_data[key][ds_name] = len(_extract_unique_hits(exps))
+    match group_by:
+        case "model":
+            st.markdown("**Average hits found by each surrogate model across all datasets:**",
+                        help="Measure of power of different surrogate models.")
+            st.markdown("*Note: Random surrogate models are excluded from the comparison.*")
+        case "embedder":
+            st.markdown("**Average hits found by each embedder model across all datasets:**",
+                        help="Measure of power of different embedder models.")
+            st.markdown("*Note: Random surrogate models are excluded from the comparison.*")
+        case "dataset":
+            st.markdown("**Average hits found in each dataset across all models and embedders:**",
+                        help="Measure of difficulty of the dataset for active learning simulations.")
 
-    if group_by == "embedder":
-        st.markdown("*Note: Random surrogate models are excluded from the comparison.*")
+    _plot_cross_dataset_data(cross_dataset_data_average, "Average Hits")
 
-    st.bar_chart(cross_dataset_data, stack=False)
+    ### UNIQUE
+    def unique_dict_constructor(exps):
+        unique_hits, n_iteration_hits_std = _extract_unique_hits(exps)
+        return {
+            "unique_hits": len(unique_hits),
+            "std": n_iteration_hits_std
+        }
+
+    cross_dataset_data_unique = _extract_cross_dataset_data(group_by, ds_groups, unique_dict_constructor)
+
+    match group_by:
+        case "model":
+            st.markdown("**Unique hits found by each surrogate model across all datasets:**",
+                        help="Measure of diversity of hits covered by different surrogate models.")
+            st.markdown("*Note: Random surrogate models are excluded from the comparison.*")
+        case "embedder":
+            st.markdown("**Unique hits found by each embedder model across all datasets:**",
+                        help="Measure of diversity of hits covered by different embedder models.")
+            st.markdown("*Note: Random surrogate models are excluded from the comparison.*")
+        case "dataset":
+            st.markdown("**Unique hits found in each dataset across all models and embedders:**",
+                        help="Measure of difficulty of the dataset for active learning simulations.")
+
+    _plot_cross_dataset_data(cross_dataset_data_unique, "Unique Hits")
 
 
 def main():
@@ -471,7 +614,6 @@ def main():
 
     # Render cross-dataset comparison
     _render_cross_dataset_comparison(ds_groups)
-
 
 
 if __name__ == "__main__":
