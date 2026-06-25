@@ -11,9 +11,9 @@ from biotrainer_core.input_files import read_FASTA
 
 from al_simulation_container import ALSimulatorDataset
 
-from biocentral_api import SequenceData, ActiveLearningCampaignConfig, ActiveLearningSimulationConfig, \
-    ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, ActiveLearningIterationResult, \
-    ActiveLearningSimulationResult, ActiveLearningConvergenceConfig
+from biocentral_api import SequenceData, ActiveLearningScreeningCampaignConfig, ActiveLearningScreeningSimulationConfig, \
+    ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, \
+    ActiveLearningScreeningSimulationResult, ActiveLearningConvergenceConfig
 
 
 class DashboardSingleSimulationData(BaseModel):
@@ -93,7 +93,7 @@ class ActiveLearningFixedBaseConfig(BaseModel):
 def get_simulator(dataset_id: ALSimulatorDataset) -> ActiveLearningSimulator:
     simulation_data = read_FASTA(dataset_id.to_path())
     assert len(simulation_data) > 0, f"Simulation data for {dataset_id} is empty."
-    
+
     match dataset_id:
         case ALSimulatorDataset.MELTOME_MAXIMIZE:
             meltome_base_config = ActiveLearningFixedBaseConfig(
@@ -144,30 +144,30 @@ class ActiveLearningSimulator:
         return BiocentralAPI(local_only=True)
 
     def get_simulation_config(self):
-        return ActiveLearningSimulationConfig(simulation_data=self.base_config.simulation_data,
-                                              n_start=10,  # TODO
-                                              n_suggestions_per_iteration=5,  # TODO
-                                              convergence_config=ActiveLearningConvergenceConfig(
-                                                  max_labels_budget=50,
-                                                  n_hits=10,
-                                                  max_consecutive_failures=5
-                                              ),  # TODO
-                                              )
+        return ActiveLearningScreeningSimulationConfig(simulation_data=self.base_config.simulation_data,
+                                                       n_start=10,  # TODO
+                                                       n_suggestions_per_iteration=5,  # TODO
+                                                       convergence_config=ActiveLearningConvergenceConfig(
+                                                           max_labels_budget=50,
+                                                           n_hits=10,
+                                                           max_consecutive_failures=5
+                                                       ),  # TODO
+                                                       )
 
     def _run_simulation(self, model_type: ActiveLearningModelType, embedder_name: str,
                         seed: int) -> ActiveLearningSingleSimulationResult:
-        al_campaign_config = ActiveLearningCampaignConfig(name="Test",  # TODO
-                                                          embedder_name=embedder_name,
-                                                          model_type=model_type,
-                                                          optimization_mode=self.base_config.optimization_mode,
-                                                          seed=seed,
-                                                          target_lb=self.base_config.target_lb,
-                                                          target_ub=self.base_config.target_ub,
-                                                          target_value=self.base_config.target_value,
-                                                          discrete_targets=self.base_config.discrete_targets)
+        al_campaign_config = ActiveLearningScreeningCampaignConfig(name="Test",  # TODO
+                                                                   embedder_name=embedder_name,
+                                                                   model_type=model_type,
+                                                                   optimization_mode=self.base_config.optimization_mode,
+                                                                   seed=seed,
+                                                                   target_lb=self.base_config.target_lb,
+                                                                   target_ub=self.base_config.target_ub,
+                                                                   target_value=self.base_config.target_value,
+                                                                   discrete_targets=self.base_config.discrete_targets)
         al_simulation_config = self.get_simulation_config()
-        result = self._biocentral_api().al_simulation(campaign_config=al_campaign_config,
-                                                      simulation_config=al_simulation_config).run_with_progress()
+        result = self._biocentral_api().al_screening_simulation(campaign_config=al_campaign_config,
+                                                                simulation_config=al_simulation_config).run_with_progress()
         if result is None:
             raise RuntimeError("Simulation failed")
 
@@ -193,9 +193,9 @@ class ActiveLearningSimulator:
 class ActiveLearningSingleSimulationResult:
     def __init__(self,
                  dataset_id: ALSimulatorDataset,
-                 al_campaign_config: ActiveLearningCampaignConfig,
-                 al_simulation_config: ActiveLearningSimulationConfig,
-                 simulation_result: ActiveLearningSimulationResult):
+                 al_campaign_config: ActiveLearningScreeningCampaignConfig,
+                 al_simulation_config: ActiveLearningScreeningSimulationConfig,
+                 simulation_result: ActiveLearningScreeningSimulationResult):
         self.dataset_id = dataset_id
         self.al_campaign_config = al_campaign_config
         self.al_simulation_config = al_simulation_config
@@ -219,10 +219,12 @@ class ActiveLearningSingleSimulationResult:
         data = json.loads(json_str)
         return cls(
             dataset_id=ALSimulatorDataset(data['dataset_id']),
-            al_campaign_config=ActiveLearningCampaignConfig.model_validate_json(json.dumps(data['al_campaign_config'])),
-            al_simulation_config=ActiveLearningSimulationConfig.model_validate_json(
+            al_campaign_config=ActiveLearningScreeningCampaignConfig.model_validate_json(
+                json.dumps(data['al_campaign_config'])),
+            al_simulation_config=ActiveLearningScreeningSimulationConfig.model_validate_json(
                 json.dumps(data['al_simulation_config'])),
-            simulation_result=ActiveLearningSimulationResult.model_validate_json(json.dumps(data['simulation_result']))
+            simulation_result=ActiveLearningScreeningSimulationResult.model_validate_json(
+                json.dumps(data['simulation_result']))
         )
 
     def is_success(self):
@@ -230,7 +232,7 @@ class ActiveLearningSingleSimulationResult:
         return sum(map(len, self.simulation_result.iteration_hits or [])) >= required_n_hits
 
     @staticmethod
-    def _print_stats(result: ActiveLearningSimulationResult):
+    def _print_stats(result: ActiveLearningScreeningSimulationResult):
         print(f"Simulation campaign stats:")
         print(f"Simulation stop reasons: {result.stop_reasons}")
         print(f"Total number of iterations: {len(result.iteration_results or [])}")

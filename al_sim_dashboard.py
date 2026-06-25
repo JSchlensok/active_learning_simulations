@@ -8,7 +8,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Callable
-from biotrainer_vis import BiotrainerChart
+from biocentral_vis import BiocentralChart
 from biotrainer_core.input_files import read_FASTA
 from biotrainer_core.data_classes import SequenceData
 
@@ -346,7 +346,7 @@ def _render_dataset_tab(selected_dataset: str, base_config, exps):
         return [''] * len(row)
 
     st.dataframe(df.style.apply(highlight_potential_hits, axis=1))
-    biotrainer_chart = BiotrainerChart.label_distribution(dataset_sequences)
+    biotrainer_chart = BiocentralChart.label_distribution(dataset_sequences)
     st.altair_chart(biotrainer_chart.chart, use_container_width=True)
 
 
