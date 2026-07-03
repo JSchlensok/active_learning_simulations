@@ -33,6 +33,7 @@ def _create_experiment_params():
         CommonEmbedder.ONE_HOT_ENCODING.value,
         CommonEmbedder.LENGTH_EMBEDDER.value,
         CommonEmbedder.RANDOM_EMBEDDER.value,
+        CommonEmbedder.BLOSUM62.value,
         CommonEmbedder.ProtT5.value,
     ]
     model_types = [ActiveLearningModelType.GAUSSIAN_PROCESS, ActiveLearningModelType.FNN_MCD,
@@ -43,11 +44,11 @@ def _create_experiment_params():
                 experiment_params.append(
                     ExperimentParametersV1(dataset_id=dataset_id, embedder_name=embedder_name, model_type=model_type))
     # TODO DEBUG
-    experiment_params = [
-        ExperimentParametersV1(dataset_id=ALSimulatorDataset.EXOTOX,
-                               model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
-                               embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
-     ]
+    # experiment_params = [
+    #     ExperimentParametersV1(dataset_id=ALSimulatorDataset.EXOTOX,
+    #                            model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
+    #                            embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
+    # ]
     return experiment_params
 
 
@@ -92,7 +93,7 @@ def _create_projection(experiment_params: ExperimentParametersV1):
 
 
 def main():
-    run_name = "test_run_exotox"
+    run_name = "vanilla_run_1_pca"
     experiment_params = _create_experiment_params()
     for experiment_param in experiment_params:
         _run_experiment(experiment_param)
