@@ -8,6 +8,8 @@ from __future__ import annotations
 import re
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple, Callable
+
+from biocentral_api import ProjectionResult
 from biocentral_vis import BiocentralChart
 from biotrainer_core.input_files import read_FASTA
 from biotrainer_core.data_classes import SequenceData
@@ -26,6 +28,7 @@ from al_simulator import (
 )
 
 RESULTS_DIR = Path("simulation_v1_results")
+PROJECTIONS_DIR = Path("simulation_v1_projections")
 
 st.set_page_config(page_title="AL Simulation Dashboard", layout="wide")
 
@@ -52,6 +55,14 @@ def _load_compressed(run_file_paths: List[Path]) -> Dict[str, DashboardCompresse
             st.sidebar.error(f"Failed to load compressed data: {exc}")
             continue
     return result
+
+
+@st.cache_data(show_spinner=False)
+def _load_projection(dataset_id: ALSimulatorDataset, embedder_name: str) -> Optional[ProjectionResult]:
+    projection_path = PROJECTIONS_DIR / f"projection_result_{dataset_id.name}_{embedder_name}.json"
+    if projection_path.exists():
+        return ProjectionResult.model_validate_json(projection_path.read_text())
+    return None
 
 
 @st.cache_data(show_spinner=True)
@@ -130,9 +141,24 @@ def _render_simulations_aggregate(exp: DashboardExperimentData) -> None:
         )
         st.altair_chart(suggestions_chart.interactive(), use_container_width=True)
 
+    unique_hits, _ = _extract_unique_hits([exp])
+    dataset_sequences = _load_dataset_sequences(exp.dataset_id.name)
+    projection_result = _load_projection(dataset_id=exp.dataset_id, embedder_name=exp.embedder)
+    if projection_result is None:
+        st.warning("Projection not available for this experiment.")
+        return
+    else:
+        chart_projection = BiocentralChart.projection_result(projection_result=projection_result,
+                                                                 dataset=dataset_sequences,
+                                                                 highlight_ids=unique_hits,
+                                                                 highlight_name="Unique Hits",
+                                                                 )
+        st.altair_chart(chart_projection.chart.interactive(), use_container_width=True)
 
-def _render_single_simulation(sim_data, summary: dict) -> None:
+
+def _render_single_simulation(exp: DashboardExperimentData, sim_data, summary: dict) -> None:
     stop_reasons = sim_data.stop_reasons
+
     cols_row1 = st.columns(2)
     cols_row1[0].metric("Seed", sim_data.seed)
     cols_row1[1].metric("Success", sim_data.is_success)
@@ -164,6 +190,64 @@ def _render_single_simulation(sim_data, summary: dict) -> None:
         st.altair_chart(chart_failures.interactive(), use_container_width=True)
     with col_right:
         st.altair_chart(chart_successes.interactive(), use_container_width=True)
+
+    # Projection Chart
+    projection_result = _load_projection(dataset_id=exp.dataset_id, embedder_name=exp.embedder)
+    if projection_result is None:
+        st.warning("Projection not available for this experiment.")
+        return
+    else:
+        # Projection Chart Navigation
+        dataset_sequences = _load_dataset_sequences(exp.dataset_id.name)
+
+        # Create options: Full dataset + each iteration
+        projection_options = ["Full Dataset"] + [f"Iteration {i + 1}" for i in range(len(sim_data.iteration_hits))]
+
+        # Initialize session state for projection selection if not exists
+        if 'projection_view_idx' not in st.session_state:
+            st.session_state.projection_view_idx = 0
+
+        iteration_projections = []
+        all_iteration_hits = set()
+        for iteration_hits in sim_data.iteration_hits:
+            for hit in iteration_hits:
+                all_iteration_hits.add(hit)
+            chart_projection = BiocentralChart.projection_result(projection_result=projection_result,
+                                                                 dataset=dataset_sequences,
+                                                                 highlight_ids=set(iteration_hits),
+                                                                 highlight_name="Iteration Hits",
+                                                                 )
+            iteration_projections.append(chart_projection)
+
+        chart_projection_full = BiocentralChart.projection_result(projection_result=projection_result,
+                                                                  dataset=dataset_sequences,
+                                                                  highlight_ids=set(all_iteration_hits),
+                                                                  highlight_name="All Hits",
+                                                                  )
+        projections = [chart_projection_full] + iteration_projections
+
+        # Navigation controls
+        col1, col2, col3 = st.columns([1, 2, 1])
+
+        with col1:
+            if st.button("← Previous", disabled=st.session_state.projection_view_idx == 0):
+                st.session_state.projection_view_idx -= 1
+                st.rerun()
+
+        with col2:
+            project_view_idx = st.session_state.projection_view_idx
+            chart_title = projection_options[project_view_idx]
+            st.markdown(f"**{chart_title}**")
+
+        with col3:
+            if st.button("Next →", disabled=st.session_state.projection_view_idx == len(projection_options) - 1):
+                st.session_state.projection_view_idx += 1
+                st.rerun()
+
+        project_view_idx = st.session_state.projection_view_idx
+        chart_projection = projections[project_view_idx]
+
+        st.altair_chart(chart_projection.chart.interactive(), use_container_width=True)
 
     with st.expander("Raw stats"):
         st.markdown(f"- **Stop reasons:** {stop_reasons}")
@@ -602,7 +686,7 @@ def main():
             sim_labels = {s.label: s for s in exp.single_sims}
             selected_label = st.selectbox("Simulation run", sorted(sim_labels.keys()))
             sim_data = sim_labels[selected_label]
-            _render_single_simulation(sim_data, exp.summary)
+            _render_single_simulation(exp, sim_data, exp.summary)
 
     with main_tabs[1]:  # Inner simulation comparison (model/embedder)
         _render_inner_simulation_comparison(subset)

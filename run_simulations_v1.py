@@ -1,6 +1,7 @@
 from pathlib import Path
+from biotrainer_core.input_files import read_FASTA
 from pydantic import BaseModel, Field
-from biocentral_api import ActiveLearningModelType, CommonEmbedder
+from biocentral_api import ActiveLearningModelType, CommonEmbedder, BiocentralAPI
 
 from al_compress_reports import compress_reports
 from al_simulation_container import ALSimulatorDataset
@@ -10,6 +11,7 @@ from al_simulator import ActiveLearningMultipleSimulationResult, get_simulator
 class ExperimentConstants:
     n_rounds: int = 5
     result_dir: Path = Path("simulation_v1_results/")
+    projection_dir: Path = Path("simulation_v1_projections/")
 
 
 class ExperimentParametersV1(BaseModel):
@@ -41,11 +43,11 @@ def _create_experiment_params():
                 experiment_params.append(
                     ExperimentParametersV1(dataset_id=dataset_id, embedder_name=embedder_name, model_type=model_type))
     # TODO DEBUG
-    #experiment_params = [
-    #    ExperimentParametersV1(dataset_id=ALSimulatorDataset.SCL,
-    #                           model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
-    #                           embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
-    #]
+    experiment_params = [
+        ExperimentParametersV1(dataset_id=ALSimulatorDataset.EXOTOX,
+                               model_type=ActiveLearningModelType.GAUSSIAN_PROCESS,
+                               embedder_name=CommonEmbedder.ONE_HOT_ENCODING.value)
+     ]
     return experiment_params
 
 
@@ -67,13 +69,39 @@ def _run_experiment(experiment_params: ExperimentParametersV1):
     sim_result.print_stats()
 
 
+def _create_projection(experiment_params: ExperimentParametersV1):
+    embedder_name = experiment_params.embedder_name
+    dataset_name = experiment_params.dataset_id.name
+    projection_name = f"projection_result_{dataset_name}_{embedder_name}.json"
+    projection_path = ExperimentConstants.projection_dir / projection_name
+    if projection_path.exists():
+        print("Projection already exists. Skipping...")
+        return
+
+    sequence_data = read_FASTA(experiment_params.dataset_id.to_path())
+    biocentral_api = BiocentralAPI(local_only=True)
+    projection_result = biocentral_api.project(embedder_name=experiment_params.embedder_name,
+                                               method="pca",
+                                               sequence_data=sequence_data,
+                                               projection_config={"n_components": "2"}).run()
+
+    with open(projection_path, "w") as f:
+        f.write(projection_result.model_dump_json())
+
+    print(f"Projection saved to {projection_path}!")
+
+
 def main():
-    run_name = "vanilla_run1_pca"
+    run_name = "test_run_exotox"
     experiment_params = _create_experiment_params()
     for experiment_param in experiment_params:
         _run_experiment(experiment_param)
     print("All simulations completed. Compressing reports...")
     compress_reports(run_name=run_name)
+    print("Reports compressed. Creating projections...")
+    for experiment_param in experiment_params:
+        _create_projection(experiment_param)
+    print("Projections created. Exiting with success.")
 
 
 if __name__ == "__main__":
