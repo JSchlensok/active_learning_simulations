@@ -59,6 +59,7 @@ def _load_compressed(run_file_paths: List[Path]) -> Dict[str, DashboardCompresse
 
 @st.cache_data(show_spinner=False)
 def _load_projection(dataset_id: ALSimulatorDataset, embedder_name: str) -> Optional[ProjectionResult]:
+    embedder_name = embedder_name.replace("/", "-")
     projection_path = PROJECTIONS_DIR / f"projection_result_{dataset_id.name}_{embedder_name}.json"
     if projection_path.exists():
         return ProjectionResult.model_validate_json(projection_path.read_text())
@@ -419,6 +420,17 @@ def _render_dataset_tab(selected_dataset: str, base_config, exps):
               help="Total number of potential hits in the dataset given the campaign configuration.")
     dataset_sequences = _load_dataset_sequences(selected_dataset)
     df = pd.DataFrame([seq.model_dump() for seq in dataset_sequences])
+
+    # Convert label to float if possible
+    if 'label' in df.columns:
+        def try_float_conversion(val):
+            try:
+                return float(val)
+            except (ValueError, TypeError):
+                return val
+
+        df['label'] = df['label'].apply(try_float_conversion)
+
     df = df.drop(columns=['attributes', 'embedding', 'mask', 'set'], errors='ignore')
 
     st.markdown(f"**Simulation Data**",
@@ -430,8 +442,23 @@ def _render_dataset_tab(selected_dataset: str, base_config, exps):
         return [''] * len(row)
 
     st.dataframe(df.style.apply(highlight_potential_hits, axis=1))
+    
+    # Label distribution Chart
     biotrainer_chart = BiocentralChart.label_distribution(dataset_sequences)
-    st.altair_chart(biotrainer_chart.chart, use_container_width=True)
+    st.markdown(f"**Dataset Label Distribution**",
+                help="Distribution of all labels in the dataset.")
+    chart = biotrainer_chart.chart
+
+    chart = chart.properties(width=1200, height=800).configure_axis(
+        labelFontSize=20,
+        titleFontSize=28
+    ).configure_axisX(
+        labelAngle=-45,
+        labelLimit=0,
+        labelOverlap=False
+    ).configure_legend(
+        labelFontSize=24, titleFontSize=24).configure_title(fontSize=24)
+    st.altair_chart(chart, use_container_width=True)
 
 
 def _extract_cross_dataset_data(group_by: str, ds_groups: Dict[str, List[DashboardExperimentData]],
@@ -473,7 +500,7 @@ def _plot_cross_dataset_data(cross_dataset_data: Dict, value_name: str):
             plot_data.append({
                 "category": key,
                 "value": mean_value,
-                "lower": mean_value - std_value,
+                "lower": max(0, mean_value - std_value),
                 "upper": mean_value + std_value,
                 "std_value": std_value,
             })
@@ -487,13 +514,15 @@ def _plot_cross_dataset_data(cross_dataset_data: Dict, value_name: str):
 
     # Create DataFrame for the chart
     df = pd.DataFrame(plot_data)
+    df = df.sort_values("value", ascending=False).reset_index(drop=True)
+    category_sort = df["category"].tolist()
 
-    # Create point chart with error bars
-    points = alt.Chart(df).mark_bar(
+    # Create bar chart with error bars
+    bars = alt.Chart(df).mark_bar(
         size=100,
         filled=True,
     ).encode(
-        x=alt.X('category:N', title=None, axis=alt.Axis(labelAngle=-45)),
+        x=alt.X('category:N', title=None, axis=alt.Axis(labelAngle=-45), sort=category_sort),
         y=alt.Y('value:Q', title=value_name),
         color=alt.Color('category:N',
                         scale=alt.Scale(scheme='tableau10'),
@@ -511,14 +540,20 @@ def _plot_cross_dataset_data(cross_dataset_data: Dict, value_name: str):
     ).encode(
         y=alt.Y('lower:Q', title=value_name),
         y2=alt.Y2('upper:Q', title=None),
-        x=alt.X('category:N')
+        x=alt.X('category:N', sort=category_sort),
     )
 
-    # Combine points and error bars
-    chart = (points + error_bars).properties(
-        width=600,
-        height=500
-    )
+    chart = (bars + error_bars)
+
+    chart = chart.properties(width=1200, height=800).configure_axis(
+        labelFontSize=20,
+        titleFontSize=28
+    ).configure_axisX(
+        labelAngle=-45,
+        labelLimit=0,
+        labelOverlap=False
+    ).configure_legend(
+        labelFontSize=24, titleFontSize=24).configure_title(fontSize=24)
 
     st.altair_chart(chart, use_container_width=True)
 
