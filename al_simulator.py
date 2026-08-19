@@ -228,7 +228,9 @@ class ActiveLearningSingleSimulationResult:
         )
 
     def is_success(self):
-        required_n_hits = 10  # TODO CONFIG
+        required_n_hits = self.al_simulation_config.convergence_config.n_hits
+        if required_n_hits is None:
+            return False  # No hit threshold to measure success against
         return sum(map(len, self.simulation_result.iteration_hits or [])) >= required_n_hits
 
     @staticmethod
