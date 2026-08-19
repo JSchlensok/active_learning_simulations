@@ -141,7 +141,7 @@ class ActiveLearningSimulator:
 
     @staticmethod
     def _biocentral_api():
-        return BiocentralAPI(local_only=True)
+        return BiocentralAPI()
 
     def get_simulation_config(self):
         return ActiveLearningScreeningSimulationConfig(simulation_data=self.base_config.simulation_data,
