@@ -9,8 +9,15 @@ dependencies = [
     "pandas>=2.2",
     "streamlit>=1.36",
     "vl-convert-python>=1.6",
+    "biocentral-api",
     "biocentral-vis @ git+https://github.com/biocentral/biocentral_vis.git@8891271146175d196e77ff003ff4ba3fca9a15fc#subdirectory=python",
+    "biotrainer-core>=2.0.0,<3.0.0",
 ]
 
+[tool.uv]
+# biocentral-vis still pins biocentral-api 1.2.0, while this repository needs 2.0.0.
+# vis only imports ProjectionResult and Prediction, both of which exist in 2.0.0.
+override-dependencies = ["biocentral-api"]
+
 [tool.uv.sources]
-#biocentral-api = { path = "../biocentral_api/python", editable = true }
+biocentral-api = { path = "../biocentral_api/python", editable = true }
