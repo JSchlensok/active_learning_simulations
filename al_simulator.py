@@ -133,6 +133,8 @@ def get_simulator(dataset_id: ALSimulatorDataset) -> ActiveLearningSimulator:
                 discrete_targets=["EXOTOXIN"],
                 optimization_mode=ActiveLearningOptimizationMode.DISCRETE)
             return ActiveLearningSimulator(al_base_config=exotox_base_config)
+        case _:
+            raise ValueError(f"No simulator configuration for dataset {dataset_id.name}.")
 
 
 class ActiveLearningSimulator:
