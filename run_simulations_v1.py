@@ -3,6 +3,7 @@ from biotrainer_core.input_files import read_FASTA
 from pydantic import BaseModel, Field
 from biocentral_api import ActiveLearningModelType, CommonEmbedder, BiocentralAPI
 
+from al_paths import RESULTS_DIR, PROJECTIONS_DIR
 from al_compress_reports import compress_reports
 from al_simulation_container import ALSimulatorDataset
 from al_simulator import ActiveLearningMultipleSimulationResult, get_simulator
@@ -10,8 +11,8 @@ from al_simulator import ActiveLearningMultipleSimulationResult, get_simulator
 
 class ExperimentConstants:
     n_rounds: int = 5
-    result_dir: Path = Path("simulation_v1_results/")
-    projection_dir: Path = Path("simulation_v1_projections/")
+    result_dir: Path = RESULTS_DIR
+    projection_dir: Path = PROJECTIONS_DIR
 
 
 class ExperimentParametersV1(BaseModel):
