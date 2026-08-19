@@ -19,6 +19,7 @@ import pandas as pd
 import numpy as np
 
 import al_plots
+from al_paths import RESULTS_DIR, PROJECTIONS_DIR
 from al_simulation_container import ALSimulatorDataset
 from al_simulator import (
     get_simulator,
@@ -26,9 +27,6 @@ from al_simulator import (
     DashboardCompressedData,
     DashboardExperimentData,
 )
-
-RESULTS_DIR = Path("simulation_v1_results")
-PROJECTIONS_DIR = Path("simulation_v1_projections")
 
 st.set_page_config(page_title="AL Simulation Dashboard", layout="wide")
 

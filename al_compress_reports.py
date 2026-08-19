@@ -1,13 +1,11 @@
 import re
 
-from pathlib import Path
+from al_paths import RESULTS_DIR
 from al_simulator import (
     ActiveLearningMultipleSimulationResult,
     DashboardCompressedData,
     DashboardExperimentData, DashboardSingleSimulationData,
 )
-
-RESULTS_DIR = Path("simulation_v1_results")
 
 
 def parse_dataset_from_filename(fname: str) -> str:
