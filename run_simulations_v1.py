@@ -80,7 +80,7 @@ def _create_projection(experiment_params: ExperimentParametersV1):
         return
 
     sequence_data = read_FASTA(experiment_params.dataset_id.to_path())
-    biocentral_api = BiocentralAPI(local_only=True)
+    biocentral_api = BiocentralAPI()
     projection_result = biocentral_api.project(embedder_name=experiment_params.embedder_name,
                                                method="pca",
                                                sequence_data=sequence_data,
