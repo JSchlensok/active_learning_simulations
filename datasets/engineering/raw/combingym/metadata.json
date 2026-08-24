@@ -1,0 +1,217 @@
+{
+  "CR9114": {
+    "browse_row": {
+      "additional": null,
+      "createdAt": "2025-04-04T03:48:11",
+      "description": "influenza broadly neutralizing antibody (bnAbs) CR9114",
+      "dmsDataset": "CR9114_20251021100655A042.xlsx",
+      "dmsMeasPerc": 1.0,
+      "dmsMeasured": 65535,
+      "dmsRef": "Phillips A M, Lawrence K R, Moulana A, et al. Binding affinity landscapes constrain the evolution of broadly neutralizing anti-influenza antibodies[J]. Elife, 2021, 10: e71393.",
+      "dmsSiteNum": 16,
+      "dmsSites": "F29, S30, S31, I52, T57, A58, N59, T71, K74, S75, T76, S77, S84, R87, Y95, Y106",
+      "dmsVarSpace": 65536,
+      "id": 7,
+      "msaBitThres": 0.5,
+      "msaDepth": 37683,
+      "msaFile": "CR9114_20251021100655A043.a2m",
+      "msaSiteNum": 15,
+      "msaSites": "F29, S30, S31, I52, T57, A58, N59, T71, K74, S75, T76, S77, S84, R87, Y95",
+      "property": "Binding",
+      "protName": "CR9114",
+      "reviewStatus": 1,
+      "seqLen": 121,
+      "seqWtSeq": "CR9114_20251021100655A041.fasta",
+      "structure": "CR9114_20251021100655A044.pdb",
+      "uniprotId": null,
+      "updatedAt": null
+    },
+    "files": {
+      "dms": {
+        "bytes": 8731695,
+        "path": "CR9114/CR9114_dms.xlsx",
+        "server_file_name": "CR9114_20251021100655A042.xlsx",
+        "sha256": "2a8a8d6ed00e9b350189c3d6baed9af62b208f151c4bf4283ccf84ab428b3e44"
+      },
+      "sequence": {
+        "bytes": 141,
+        "path": "CR9114/CR9114_wt.fasta",
+        "server_file_name": "CR9114_20251021100655A041.fasta",
+        "sha256": "b404e35d7a6aea4306df41d77f09236675717571e0033789e5d213e4d0582284"
+      }
+    },
+    "source_url": "https://combingym.org/#/browse"
+  },
+  "CreiLOV": {
+    "browse_row": {
+      "additional": null,
+      "createdAt": "2025-04-04T03:48:11",
+      "description": "Flavin mononucleotide (FMN)-based fluorescent protein from Chlamydomonas reinhardtii",
+      "dmsDataset": "CreiLOV_20251021100517A034.xlsx",
+      "dmsMeasPerc": 0.8975,
+      "dmsMeasured": 165428,
+      "dmsRef": "Chen Y, Hu R, Li K, et al. Deep mutational scanning of an Oxygen-Independent fluorescent protein CreiLOV for comprehensive profiling of mutational and epistatic effects[J]. ACS Synthetic Biology, 2023, 12(5): 1461-1473.",
+      "dmsSiteNum": 15,
+      "dmsSites": "G3, L4, R5, T7, A29, G34, Q47, R60, D61, I92, D96, R98, V107, V109, T113",
+      "dmsVarSpace": 184320,
+      "id": 5,
+      "msaBitThres": 0.7,
+      "msaDepth": 51241,
+      "msaFile": "CreiLOV_20251021100517A035.a2m",
+      "msaSiteNum": 11,
+      "msaSites": "T7, A29, G34, Q47, R60, D61, I92, D96, R98, V107, V109",
+      "property": "Fluorescence",
+      "protName": "CreiLOV",
+      "reviewStatus": 1,
+      "seqLen": 119,
+      "seqWtSeq": "CreiLOV_20251021100517A033.fasta",
+      "structure": "CreiLOV_20251021100517A036.pdb",
+      "uniprotId": "UPI000CD37A5A",
+      "updatedAt": null
+    },
+    "files": {
+      "dms": {
+        "bytes": 26263959,
+        "path": "CreiLOV/CreiLOV_dms.xlsx",
+        "server_file_name": "CreiLOV_20251021100517A034.xlsx",
+        "sha256": "170e634b1ba910c000cf712a001378400614d960817dba13265961060c1c5469"
+      },
+      "sequence": {
+        "bytes": 134,
+        "path": "CreiLOV/CreiLOV_wt.fasta",
+        "server_file_name": "CreiLOV_20251021100517A033.fasta",
+        "sha256": "dc696f32002cd9b08e9388fa5789f6e32e00c944ec1524adb7e6bfd499b7ea23"
+      }
+    },
+    "source_url": "https://combingym.org/#/browse"
+  },
+  "GB1": {
+    "browse_row": {
+      "additional": null,
+      "createdAt": "2025-04-04T03:48:11",
+      "description": "protein G domain B1",
+      "dmsDataset": "GB1_20251021100854A050.xlsx",
+      "dmsMeasPerc": 0.9335,
+      "dmsMeasured": 149361,
+      "dmsRef": "Wu N C, Dai L, Olson C A, et al. Adaptation in protein fitness landscapes is facilitated by indirect paths[J]. Elife, 2016, 5: e16965.",
+      "dmsSiteNum": 4,
+      "dmsSites": "V39, D40, G41, V54",
+      "dmsVarSpace": 160000,
+      "id": 9,
+      "msaBitThres": 0.4,
+      "msaDepth": 387,
+      "msaFile": "GB1_20251021100854A051.a2m",
+      "msaSiteNum": 4,
+      "msaSites": "V39, D40, G41, V54",
+      "property": "Binding",
+      "protName": "GB1",
+      "reviewStatus": 1,
+      "seqLen": 56,
+      "seqWtSeq": "GB1_20251021100854A049.fasta",
+      "structure": "GB1_20251021100854A052.pdb",
+      "uniprotId": "P06654",
+      "updatedAt": null
+    },
+    "files": {
+      "dms": {
+        "bytes": 4393393,
+        "path": "GB1/GB1_dms.xlsx",
+        "server_file_name": "GB1_20251021100854A050.xlsx",
+        "sha256": "6f77696565b9f794d6d2bf0f5b3cc5b97d15000b1a18ce1869b42a700cc8351f"
+      },
+      "sequence": {
+        "bytes": 66,
+        "path": "GB1/GB1_wt.fasta",
+        "server_file_name": "GB1_20251021100854A049.fasta",
+        "sha256": "5703f04a827731008e67c376121c1eb7ea3536d504a4dfde5b90ce62a3e1c2b3"
+      }
+    },
+    "source_url": "https://combingym.org/#/browse"
+  },
+  "SaCas9": {
+    "browse_row": {
+      "additional": null,
+      "createdAt": "2025-04-04T03:48:11",
+      "description": "Protospacer adjacent motif-relaxed KKH variant of Cas9 nuclease from Staphylococcus aureus (KKH-SaCas9)",
+      "dmsDataset": "SaCas9_20251021095803A018.xlsx",
+      "dmsMeasPerc": 1.0,
+      "dmsMeasured": 1296,
+      "dmsRef": "Thean D G L, Chu H Y, Fong J H C, et al. Machine learning-coupled combinatorial mutagenesis enables resource-efficient engineering of CRISPR-Cas9 genome editor activities[J]. Nature Communications, 2022, 13(1): 2219.",
+      "dmsSiteNum": 8,
+      "dmsSites": "L887, N888, A889, N985, N986, L988, L989, R991",
+      "dmsVarSpace": 1296,
+      "id": 1,
+      "msaBitThres": 0.7,
+      "msaDepth": 711,
+      "msaFile": "SaCas9_20251021095803A019.a2m",
+      "msaSiteNum": 8,
+      "msaSites": "L887, N888, A889, N985, N986, L988, L989, R991",
+      "property": "Enzymatic activity",
+      "protName": "SaCas9",
+      "reviewStatus": 1,
+      "seqLen": 1053,
+      "seqWtSeq": "SaCas9_20251021095803A017.fasta",
+      "structure": "SaCas9_20251021095803A020.pdb",
+      "uniprotId": "J7RUA5",
+      "updatedAt": null
+    },
+    "files": {
+      "dms": {
+        "bytes": 126460,
+        "path": "SaCas9/SaCas9_dms.xlsx",
+        "server_file_name": "SaCas9_20251021095803A018.xlsx",
+        "sha256": "a9f7e359c29bc502c730e381ba96777219ff3f1a1f4d076b8a9bb6c75c638dc3"
+      },
+      "sequence": {
+        "bytes": 1072,
+        "path": "SaCas9/SaCas9_wt.fasta",
+        "server_file_name": "SaCas9_20251021095803A017.fasta",
+        "sha256": "760708d0e3b823c2feff048fe41b8525b5ccbb5a9a7595dbff188dafa31c12f3"
+      }
+    },
+    "source_url": "https://combingym.org/#/browse"
+  },
+  "mTagBFP2": {
+    "browse_row": {
+      "additional": null,
+      "createdAt": "2025-04-04T03:48:11",
+      "description": "Entacmaea quadricolor fluorescent protein eqFP611 variant mTagBFP2",
+      "dmsDataset": "mTagBFP2_20251021100559A038.xlsx",
+      "dmsMeasPerc": 1.0,
+      "dmsMeasured": 8192,
+      "dmsRef": "Poelwijk F J, Socolich M, Ranganathan R. Learning the pattern of epistasis linking genotype and phenotype in a protein[J]. Nature communications, 2019, 10(1): 4213.",
+      "dmsSiteNum": 13,
+      "dmsSites": "D20, V45, L63, T127, F143, N158, S168, A172, A174, Y197, N206, N207, K231",
+      "dmsVarSpace": 8192,
+      "id": 6,
+      "msaBitThres": 0.5,
+      "msaDepth": 1093,
+      "msaFile": "mTagBFP2_20251021100559A039.a2m",
+      "msaSiteNum": 11,
+      "msaSites": "D20, V45, L63, T127, F143, N158, S168, A174, Y197, N206, N207",
+      "property": "Fluorescence",
+      "protName": "mTagBFP2",
+      "reviewStatus": 1,
+      "seqLen": 233,
+      "seqWtSeq": "mTagBFP2_20251021100559A037.fasta",
+      "structure": "mTagBFP2_20251021100559A040.pdb",
+      "uniprotId": null,
+      "updatedAt": null
+    },
+    "files": {
+      "dms": {
+        "bytes": 612895,
+        "path": "mTagBFP2/mTagBFP2_dms.xlsx",
+        "server_file_name": "mTagBFP2_20251021100559A038.xlsx",
+        "sha256": "78c26826e868c24688bee5027c28ebbe446a3f6c9c181f1c4947d5dc3088987f"
+      },
+      "sequence": {
+        "bytes": 249,
+        "path": "mTagBFP2/mTagBFP2_wt.fasta",
+        "server_file_name": "mTagBFP2_20251021100559A037.fasta",
+        "sha256": "2c6785a0239d7284381ce938cbb3e63d55333693b4a882c7ec07f1e732e3fe35"
+      }
+    },
+    "source_url": "https://combingym.org/#/browse"
+  }
+}

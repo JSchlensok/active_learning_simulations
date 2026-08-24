@@ -1,0 +1,9 @@
+# Compiled simulation FASTAs and the intermediates they come from: ~122 MB total, and fully
+# reproducible from `raw/combingym/compile_combingym.py` + `../dataset_preprocessor.py`. The source
+# xlsx landscapes are gitignored too (raw/combingym/.gitignore), so committing derived data whose
+# source is untracked would be worse than not committing either.
+#
+# Note this differs from datasets/screening/, where the *_max2000.fasta files ARE committed — there
+# the raw sources are tracked and small.
+combingym_*.fasta
+raw/combingym_*.fasta

@@ -31,6 +31,11 @@ def main():
                  Path("screening/raw/PHOT_CHLRE_Chen_2023.csv"),
                  Path("screening/raw/exotox_merged.fasta"),
                  # Engineering: mutational landscapes
+                 Path("engineering/raw/combingym_GB1.fasta"),
+                 Path("engineering/raw/combingym_CreiLOV.fasta"),
+                 Path("engineering/raw/combingym_CR9114.fasta"),
+                 Path("engineering/raw/combingym_mTagBFP2.fasta"),
+                 Path("engineering/raw/combingym_SaCas9.fasta"),
                  ]
     seq_length_limit = 2000
     for raw_path in raw_paths:
