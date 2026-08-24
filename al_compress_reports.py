@@ -34,6 +34,7 @@ def compress_reports(run_name: str):
         dataset_name = multi.dataset_id()
         embedder_name = multi.embedder_name()
         model_name = multi.model_type().value
+        split_id = multi.split_id()
         potential_hits = multi.potential_hits()
 
         # Prepare data for DashboardExperimentData
@@ -79,6 +80,7 @@ def compress_reports(run_name: str):
             dataset_id=dataset_name,
             embedder=embedder_name,
             model=model_name,
+            split_id=split_id,
             summary=summary,
             aggregated_hits=multi.get_aggregated_hits(),
             aggregated_suggestions=multi.get_aggregated_number_of_suggestions(),
