@@ -24,15 +24,18 @@ def remove_outliers(seq_data: List[SequenceData]):
 
 
 def main():
-    raw_paths = [Path("raw/amylase_pet.fasta"),
-                 Path("raw/biotrainer_meltome_mixed.fasta"),
-                 Path("raw/scl.fasta"),
-                 Path("raw/PHOT_CHLRE_Chen_2023.csv"),
-                 Path("raw/exotox_merged.fasta"),
+    raw_paths = [# Screening: pools of diverse sequences
+                 Path("screening/raw/amylase_pet.fasta"),
+                 Path("screening/raw/biotrainer_meltome_mixed.fasta"),
+                 Path("screening/raw/scl.fasta"),
+                 Path("screening/raw/PHOT_CHLRE_Chen_2023.csv"),
+                 Path("screening/raw/exotox_merged.fasta"),
+                 # Engineering: mutational landscapes
                  ]
     seq_length_limit = 2000
     for raw_path in raw_paths:
-        output_path = raw_path.name.split(".")[0] + f"_max{seq_length_limit}.fasta"
+        # raw/<source>/<file> -> the dataset family dir next to it, e.g. screening/raw/x.fasta -> screening/x.fasta
+        output_path = raw_path.parent.parent / f"{raw_path.name.split('.')[0]}_max{seq_length_limit}.fasta"
         if raw_path.suffix == ".csv":
             n_seqs_in_pgym = pgym_csv_to_fasta(raw_path, output_path, single_mutations_only=True)
             assert n_seqs_in_pgym > 0, "No sequences found in the CSV file and written to FASTA file."
