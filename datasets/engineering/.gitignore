@@ -7,3 +7,5 @@
 # the raw sources are tracked and small.
 combingym_*.fasta
 raw/combingym_*.fasta
+flip2_*.fasta
+raw/flip2_*.fasta

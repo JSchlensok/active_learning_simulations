@@ -1,0 +1,5 @@
+# The split CSVs are ~11 MB of already-compressed binaries and are fully reproducible from
+# download_flip2.py, with sizes and sha256 pinned in metadata.json. The three TrpB splits are
+# additionally near-identical (same 228 298 sequences and targets, only `set` differs).
+# The upstream dataset READMEs and metadata.json stay committed.
+*.csv.gz

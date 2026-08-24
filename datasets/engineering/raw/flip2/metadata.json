@@ -1,0 +1,50 @@
+{
+  "nucb": {
+    "provenance": {
+      "citation": "Engineering of highly active and diverse nuclease enzymes by combining machine learning and ultra-high-throughput screening",
+      "license": "Creative Commons Attribution 4.0 International License (CC-BY) (as per https://github.com/google-deepmind/nuclease_design/tree/main?tab=readme-ov-file#license-and-disclaimer)",
+      "provenance": "Lab generated; first hand.",
+      "source": "https://storage.googleapis.com/nuclease_design"
+    },
+    "readme": "nucb/README.md",
+    "source_url": "https://flip.protein.properties/#downloads",
+    "splits": {
+      "two_to_many": {
+        "bytes": 624937,
+        "path": "nucb/two_to_many.csv.gz",
+        "sha256": "f4eb78afaec88dbb79233c8df0128981f4479ca3467dc252c10eff4304627339",
+        "url": "https://flip.protein.properties/assets/splits/nucb/two_to_many.csv.gz"
+      }
+    }
+  },
+  "trpb": {
+    "provenance": {
+      "citation": "K.E. Johnston,P.J. Almhjell,E.J. Watkins-Dulaney,G. Liu,N.J. Porter,J. Yang, & F.H. Arnold, A combinatorially complete epistatic fitness landscape in an enzyme active site, Proc. Natl. Acad. Sci. U.S.A. 121 (32) e2400439121, https://doi.org/10.1073/pnas.2400439121 (2024).",
+      "license": "CC0 (Creative Commons Zero v1.0 Universal)",
+      "provenance": "Lab generated; first hand.",
+      "source": "https://data.caltech.edu/records/h5rah-5z170"
+    },
+    "readme": "trpb/README.md",
+    "source_url": "https://flip.protein.properties/#downloads",
+    "splits": {
+      "by_position": {
+        "bytes": 3566499,
+        "path": "trpb/by_position.csv.gz",
+        "sha256": "6ab3757dbd4d00334fef303f5b6491b48ee1db8f44fec81abee23cc1893d3bcf",
+        "url": "https://flip.protein.properties/assets/splits/trpb/by_position.csv.gz"
+      },
+      "one_to_many": {
+        "bytes": 3557931,
+        "path": "trpb/one_to_many.csv.gz",
+        "sha256": "98d05f5506d28f5f7e0661ebfecc2224a5b9d8fe5192e00a50d94202180e35c9",
+        "url": "https://flip.protein.properties/assets/splits/trpb/one_to_many.csv.gz"
+      },
+      "two_to_many": {
+        "bytes": 3576274,
+        "path": "trpb/two_to_many.csv.gz",
+        "sha256": "8b5efc0af93d8941a8bc43c6483dee685a59c536a2119656c95d1d2548e17633",
+        "url": "https://flip.protein.properties/assets/splits/trpb/two_to_many.csv.gz"
+      }
+    }
+  }
+}
