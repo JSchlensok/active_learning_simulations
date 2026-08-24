@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from pathlib import Path
 from typing import Dict, List, Optional
 
 from pydantic import BaseModel, Field
@@ -23,15 +24,33 @@ class ALSimulatorDataset(Enum):
     AMYLASE = auto()
     PHOT = auto()
     EXOTOX = auto()
+    # Engineering (mutational landscape) datasets. Deliberately NOT in all(), so adding them did
+    # not change the experiment grid — opt in via engineering() once you want to spend the compute.
+    COMBINGYM_GB1 = auto()
+    COMBINGYM_CREILOV = auto()
+    COMBINGYM_CR9114 = auto()
+    COMBINGYM_MTAGBFP2 = auto()
+    COMBINGYM_SACAS9 = auto()
 
     @staticmethod
     def all():
+        """The datasets in the experiment grid: the screening pools."""
         return [ALSimulatorDataset.MELTOME_MAXIMIZE,
                 ALSimulatorDataset.MELTOME_MINIMIZE,
                 ALSimulatorDataset.SCL,
                 ALSimulatorDataset.AMYLASE,
                 ALSimulatorDataset.PHOT,
                 ALSimulatorDataset.EXOTOX]
+
+    @staticmethod
+    def engineering():
+        """Single-parent mutational landscapes. These declare a wild type, so they are the datasets
+        the mutation-aware extrapolation splits in al_splits can be applied to."""
+        return [ALSimulatorDataset.COMBINGYM_GB1,
+                ALSimulatorDataset.COMBINGYM_CREILOV,
+                ALSimulatorDataset.COMBINGYM_CR9114,
+                ALSimulatorDataset.COMBINGYM_MTAGBFP2,
+                ALSimulatorDataset.COMBINGYM_SACAS9]
 
     def definition(self) -> ALSimulatorDatasetDefinition:
         definition = _DATASET_DEFINITIONS.get(self.name)
@@ -70,3 +89,27 @@ _DATASET_DEFINITIONS: Dict[str, ALSimulatorDatasetDefinition] = {
         optimization_mode=ActiveLearningOptimizationMode.DISCRETE,
         discrete_targets=["EXOTOXIN"]),
 }
+
+_COMBINGYM_RAW = "datasets/engineering/raw/combingym"
+
+
+def _combingym(name: str) -> ALSimulatorDatasetDefinition:
+    """A CombinGym landscape: maximize the measured phenotype, wild type from the shipped FASTA.
+
+    Every CombinGym phenotype here is "higher is better" (binding affinity, fluorescence, nuclease
+    or nickase activity), so they are all MAXIMIZE. The label column each one uses is chosen in
+    compile_combingym.py.
+    """
+    return ALSimulatorDatasetDefinition(
+        fasta_path=f"datasets/engineering/combingym_{name}_max2000.fasta",
+        reference_fasta_path=f"{_COMBINGYM_RAW}/{name}/{name}_wt.fasta",
+        optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE)
+
+
+_DATASET_DEFINITIONS.update({
+    ALSimulatorDataset.COMBINGYM_GB1.name: _combingym("GB1"),
+    ALSimulatorDataset.COMBINGYM_CREILOV.name: _combingym("CreiLOV"),
+    ALSimulatorDataset.COMBINGYM_CR9114.name: _combingym("CR9114"),
+    ALSimulatorDataset.COMBINGYM_MTAGBFP2.name: _combingym("mTagBFP2"),
+    ALSimulatorDataset.COMBINGYM_SACAS9.name: _combingym("SaCas9"),
+})

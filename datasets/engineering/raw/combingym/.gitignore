@@ -1,0 +1,8 @@
+# The DMS landscapes are large binaries (~39 MB for the five default proteins) and are fully
+# reproducible from download_combingym.py, with sizes and sha256 pinned in metadata.json.
+# The wild-type FASTAs are tiny and stay committed.
+*.xlsx
+
+# Optional extras (--include msa structure), likewise re-downloadable.
+*.a2m
+*.pdb
