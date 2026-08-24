@@ -12,6 +12,11 @@ dependencies = [
     "biocentral-api",
     "biocentral-vis @ git+https://github.com/biocentral/biocentral_vis.git@8891271146175d196e77ff003ff4ba3fca9a15fc#subdirectory=python",
     "biotrainer-core>=2.0.0,<3.0.0",
+
+[dependency-groups]
+dev = [
+    "mypy>=1.5",
+    "ruff>=0.16.4",
 ]
 
 [tool.uv]
