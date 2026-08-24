@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from biotrainer_core.input_files import read_FASTA
 
 from al_simulation_container import ALSimulatorDataset
+from al_splits import ALSimulatorSplit
 
 from biocentral_api import SequenceData, ActiveLearningScreeningCampaignConfig, ActiveLearningScreeningSimulationConfig, \
     ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, \
@@ -39,6 +40,8 @@ class DashboardExperimentData(BaseModel):
     dataset_id: ALSimulatorDataset
     embedder: str
     model: str
+    # Optional so dashboard files written before splits existed still validate
+    split_id: Optional[ALSimulatorSplit] = None
     summary: dict
     aggregated_hits: int
     aggregated_suggestions: int
@@ -67,6 +70,10 @@ class ActiveLearningFixedBaseConfig(BaseModel):
     # Simulation config
     simulation_data: List[SequenceData]
 
+    # Split config (see al_splits). FULL_POOL is the identity split and changes nothing.
+    split_id: ALSimulatorSplit = ALSimulatorSplit.FULL_POOL
+    start_ids: Optional[List[str]] = None
+
     # Campaign config
     optimization_mode: ActiveLearningOptimizationMode
     target_lb: Optional[float] = None
@@ -90,20 +97,51 @@ class ActiveLearningFixedBaseConfig(BaseModel):
                 return "Unknown optimization mode."
 
 
-def get_simulator(dataset_id: ALSimulatorDataset) -> ActiveLearningSimulator:
+def get_simulator(dataset_id: ALSimulatorDataset,
+                  split_id: ALSimulatorSplit = ALSimulatorSplit.FULL_POOL) -> ActiveLearningSimulator:
     simulation_data = read_FASTA(dataset_id.to_path())
     assert len(simulation_data) > 0, f"Simulation data for {dataset_id} is empty."
+
+    simulation_data, start_ids = _apply_split(dataset_id=dataset_id, split_id=split_id,
+                                              simulation_data=simulation_data)
 
     definition = dataset_id.definition()
     base_config = ActiveLearningFixedBaseConfig(
         dataset_id=dataset_id,
         simulation_data=simulation_data,
+        split_id=split_id,
+        start_ids=start_ids,
         optimization_mode=definition.optimization_mode,
         target_lb=definition.target_lb,
         target_ub=definition.target_ub,
         target_value=definition.target_value,
         discrete_targets=definition.discrete_targets)
     return ActiveLearningSimulator(al_base_config=base_config)
+
+
+def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
+                 simulation_data: List[SequenceData]) -> tuple[List[SequenceData], Optional[List[str]]]:
+    """Resolve a split into (pool, start_ids).
+
+    The split's *train* half becomes the campaign's starting set (``start_ids``); its *test* half
+    stays in the pool, unlabelled, for the campaign to discover. That is the active-learning reading
+    of an extrapolation split — unlike the supervised setting, the test half is reachable. A split may
+    also narrow the pool first (``pool_selector`` / ``subsample``), for landscapes too large to embed.
+
+    The identity split short-circuits, so existing experiments stay byte-identical.
+    """
+    if split_id.is_identity():
+        return simulation_data, None
+
+    pool, assignment = split_id.resolve(simulation_data,
+                                        explicit_reference=dataset_id.reference_sequence())
+    if assignment is None:
+        print(f"Split {split_id.name}: pool {len(simulation_data)} -> {len(pool)} sequences.")
+        return pool, None
+
+    print(f"Split {split_id.name} [{split_id.definition().axis.value}] on {len(pool)} sequences: "
+          f"{assignment.summary()} ({assignment.description}).")
+    return pool, assignment.train_ids
 
 
 class ActiveLearningSimulator:
@@ -115,8 +153,12 @@ class ActiveLearningSimulator:
         return BiocentralAPI()
 
     def get_simulation_config(self):
+        # start_ids and n_start are mutually exclusive: a split pins the starting set explicitly,
+        # otherwise the campaign draws n_start sequences at random.
+        start_ids = self.base_config.start_ids
         return ActiveLearningScreeningSimulationConfig(simulation_data=self.base_config.simulation_data,
-                                                       n_start=10,  # TODO
+                                                       n_start=None if start_ids else 10,  # TODO
+                                                       start_ids=start_ids,
                                                        n_suggestions_per_iteration=5,  # TODO
                                                        convergence_config=ActiveLearningConvergenceConfig(
                                                            max_labels_budget=50,
@@ -144,6 +186,7 @@ class ActiveLearningSimulator:
 
         return ActiveLearningSingleSimulationResult(
             dataset_id=self.base_config.dataset_id,
+            split_id=self.base_config.split_id,
             al_campaign_config=al_campaign_config,
             al_simulation_config=al_simulation_config,
             simulation_result=result)
@@ -166,11 +209,13 @@ class ActiveLearningSingleSimulationResult:
                  dataset_id: ALSimulatorDataset,
                  al_campaign_config: ActiveLearningScreeningCampaignConfig,
                  al_simulation_config: ActiveLearningScreeningSimulationConfig,
-                 simulation_result: ActiveLearningScreeningSimulationResult):
+                 simulation_result: ActiveLearningScreeningSimulationResult,
+                 split_id: ALSimulatorSplit = ALSimulatorSplit.FULL_POOL):
         self.dataset_id = dataset_id
         self.al_campaign_config = al_campaign_config
         self.al_simulation_config = al_simulation_config
         self.simulation_result = simulation_result
+        self.split_id = split_id
 
     def get_total_number_of_suggestions(self):
         return sum([len(it_res.suggestions) for it_res in self.simulation_result.iteration_results])
@@ -179,6 +224,7 @@ class ActiveLearningSingleSimulationResult:
         """Serialize to JSON string"""
         return json.dumps({
             'dataset_id': self.dataset_id.value,
+            'split_id': self.split_id.value,
             'al_campaign_config': json.loads(self.al_campaign_config.model_dump_json()),
             'al_simulation_config': json.loads(self.al_simulation_config.model_dump_json()),
             'simulation_result': json.loads(self.simulation_result.model_dump_json())
@@ -190,6 +236,8 @@ class ActiveLearningSingleSimulationResult:
         data = json.loads(json_str)
         return cls(
             dataset_id=ALSimulatorDataset(data['dataset_id']),
+            # Results written before splits existed have no split_id; they are all full-pool runs.
+            split_id=ALSimulatorSplit(data.get('split_id', ALSimulatorSplit.FULL_POOL.value)),
             al_campaign_config=ActiveLearningScreeningCampaignConfig.model_validate_json(
                 json.dumps(data['al_campaign_config'])),
             al_simulation_config=ActiveLearningScreeningSimulationConfig.model_validate_json(
@@ -314,6 +362,7 @@ class ActiveLearningMultipleSimulationResult:
             assert first_result.al_campaign_config.optimization_mode == result.al_campaign_config.optimization_mode, "Optimization mode must be the same"
             assert first_result.al_simulation_config.convergence_config.n_hits == result.al_simulation_config.convergence_config.n_hits, "Simulation configs must be the same"
             assert first_result.dataset_id == result.dataset_id, "Dataset ID must be the same"
+            assert first_result.split_id == result.split_id, "Split ID must be the same"
             assert len(first_result.simulation_result.potential_hits) == len(
                 result.simulation_result.potential_hits), "Potential hits must be the same"
 
@@ -331,6 +380,9 @@ class ActiveLearningMultipleSimulationResult:
 
     def dataset_id(self) -> ALSimulatorDataset:
         return self.simulation_results[0].dataset_id
+
+    def split_id(self) -> ALSimulatorSplit:
+        return self.simulation_results[0].split_id
 
     def embedder_name(self) -> str:
         return self.simulation_results[0].al_campaign_config.embedder_name

@@ -6,6 +6,7 @@ from biocentral_api import ActiveLearningModelType, CommonEmbedder, BiocentralAP
 from al_paths import RESULTS_DIR, PROJECTIONS_DIR
 from al_compress_reports import compress_reports
 from al_simulation_container import ALSimulatorDataset
+from al_splits import ALSimulatorSplit
 from al_simulator import ActiveLearningMultipleSimulationResult, get_simulator
 
 
@@ -19,10 +20,14 @@ class ExperimentParametersV1(BaseModel):
     dataset_id: ALSimulatorDataset = Field(description="Dataset to use for the simulation")
     embedder_name: str = Field(description="Name of the embedder to use")
     model_type: ActiveLearningModelType = Field(description="Type of the model to use")
+    split_id: ALSimulatorSplit = Field(default=ALSimulatorSplit.FULL_POOL,
+                                       description="Which sequences the campaign may start from")
 
     def to_file_name(self):
         embedder_name = self.embedder_name.replace("/", "-")
-        return f"al_sim_{self.dataset_id.name}_{embedder_name}_{self.model_type.value}.json"
+        # The identity split is left out of the name so results predating splits keep resolving.
+        split_suffix = "" if self.split_id.is_identity() else f"_{self.split_id.name}"
+        return f"al_sim_{self.dataset_id.name}_{embedder_name}_{self.model_type.value}{split_suffix}.json"
 
 
 def _create_experiment_params():
@@ -39,11 +44,17 @@ def _create_experiment_params():
     ]
     model_types = [ActiveLearningModelType.GAUSSIAN_PROCESS, ActiveLearningModelType.FNN_MCD,
                    ActiveLearningModelType.RANDOM]
+    # Fourth grid axis, currently pinned to the identity split so the matrix is unchanged. Adding
+    # e.g. ALSimulatorSplit.NUMBER_2_VS_REST here multiplies the grid; note that the mutation-aware
+    # axes only work on datasets that declare a reference sequence (see al_splits).
+    split_ids = [ALSimulatorSplit.FULL_POOL]
     for dataset_id in dataset_ids:
         for embedder_name in embedder_names:
             for model_type in model_types:
-                experiment_params.append(
-                    ExperimentParametersV1(dataset_id=dataset_id, embedder_name=embedder_name, model_type=model_type))
+                for split_id in split_ids:
+                    experiment_params.append(
+                        ExperimentParametersV1(dataset_id=dataset_id, embedder_name=embedder_name,
+                                              model_type=model_type, split_id=split_id))
     # TODO DEBUG
     # experiment_params = [
     #     ExperimentParametersV1(dataset_id=ALSimulatorDataset.EXOTOX,
@@ -62,7 +73,7 @@ def _run_experiment(experiment_params: ExperimentParametersV1):
     if use_save and save_dir.exists():
         sim_result = ActiveLearningMultipleSimulationResult.from_json(save_dir)
     else:
-        al_simulator = get_simulator(experiment_params.dataset_id)
+        al_simulator = get_simulator(experiment_params.dataset_id, split_id=experiment_params.split_id)
         print(f"Running simulation for {experiment_params}..")
         sim_result = al_simulator.simulate(model_type=experiment_params.model_type,
                                            embedder_name=experiment_params.embedder_name,
