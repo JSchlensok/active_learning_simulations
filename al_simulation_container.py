@@ -14,6 +14,10 @@ class ALSimulatorDatasetDefinition(BaseModel):
     target_lb: Optional[float] = Field(default=None, description="Lower bound of the target (mode: INTERVAL)")
     target_ub: Optional[float] = Field(default=None, description="Upper bound of the target (mode: INTERVAL)")
     target_value: Optional[float] = Field(default=None, description="Target value (mode: VALUE)")
+    reference_fasta_path: Optional[str] = Field(
+        default=None,
+        description="Single-sequence FASTA with the wild type this dataset mutates. Only mutational "
+                    "landscapes have one; mutation-aware splits (see al_splits) require it.")
 
 
 class ALSimulatorDataset(Enum):
@@ -57,6 +61,14 @@ class ALSimulatorDataset(Enum):
         if definition is None:
             raise ValueError(f"No dataset definition for {self.name}.")
         return definition
+
+    def reference_sequence(self) -> Optional[str]:
+        """Wild-type sequence of this dataset, or None if it is not a mutational landscape."""
+        reference_path = self.definition().reference_fasta_path
+        if reference_path is None:
+            return None
+        lines = Path(reference_path).read_text().splitlines()
+        return "".join(line.strip() for line in lines if line and not line.startswith(">"))
 
     def to_path(self, path_override: Optional[Dict[str, str]] = None) -> str:
         path = None
