@@ -81,23 +81,23 @@ class ALSimulatorDataset(Enum):
 
 _DATASET_DEFINITIONS: Dict[str, ALSimulatorDatasetDefinition] = {
     ALSimulatorDataset.MELTOME_MAXIMIZE.name: ALSimulatorDatasetDefinition(
-        fasta_path="datasets/biotrainer_meltome_mixed_max2000.fasta",
+        fasta_path="datasets/screening/biotrainer_meltome_mixed_max2000.fasta",
         optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE),
     ALSimulatorDataset.MELTOME_MINIMIZE.name: ALSimulatorDatasetDefinition(
-        fasta_path="datasets/biotrainer_meltome_mixed_max2000.fasta",
+        fasta_path="datasets/screening/biotrainer_meltome_mixed_max2000.fasta",
         optimization_mode=ActiveLearningOptimizationMode.MINIMIZE),
     ALSimulatorDataset.SCL.name: ALSimulatorDatasetDefinition(
-        fasta_path="datasets/scl_max2000.fasta",
+        fasta_path="datasets/screening/scl_max2000.fasta",
         optimization_mode=ActiveLearningOptimizationMode.DISCRETE,
         discrete_targets=["Peroxisome"]),
     ALSimulatorDataset.AMYLASE.name: ALSimulatorDatasetDefinition(
-        fasta_path="datasets/amylase_pet_max2000.fasta",
+        fasta_path="datasets/screening/amylase_pet_max2000.fasta",
         optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE),
     ALSimulatorDataset.PHOT.name: ALSimulatorDatasetDefinition(
-        fasta_path="datasets/PHOT_CHLRE_Chen_2023_max2000.fasta",
+        fasta_path="datasets/screening/PHOT_CHLRE_Chen_2023_max2000.fasta",
         optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE),
     ALSimulatorDataset.EXOTOX.name: ALSimulatorDatasetDefinition(
-        fasta_path="datasets/exotox_merged_max2000.fasta",
+        fasta_path="datasets/screening/exotox_merged_max2000.fasta",
         optimization_mode=ActiveLearningOptimizationMode.DISCRETE,
         discrete_targets=["EXOTOXIN"]),
 }
