@@ -35,6 +35,8 @@ class ALSimulatorDataset(Enum):
     COMBINGYM_CR9114 = auto()
     COMBINGYM_MTAGBFP2 = auto()
     COMBINGYM_SACAS9 = auto()
+    FLIP2_TRPB = auto()
+    FLIP2_NUCB = auto()
 
     @staticmethod
     def all():
@@ -54,7 +56,9 @@ class ALSimulatorDataset(Enum):
                 ALSimulatorDataset.COMBINGYM_CREILOV,
                 ALSimulatorDataset.COMBINGYM_CR9114,
                 ALSimulatorDataset.COMBINGYM_MTAGBFP2,
-                ALSimulatorDataset.COMBINGYM_SACAS9]
+                ALSimulatorDataset.COMBINGYM_SACAS9,
+                ALSimulatorDataset.FLIP2_TRPB,
+                ALSimulatorDataset.FLIP2_NUCB]
 
     def definition(self) -> ALSimulatorDatasetDefinition:
         definition = _DATASET_DEFINITIONS.get(self.name)
@@ -124,4 +128,24 @@ _DATASET_DEFINITIONS.update({
     ALSimulatorDataset.COMBINGYM_CR9114.name: _combingym("CR9114"),
     ALSimulatorDataset.COMBINGYM_MTAGBFP2.name: _combingym("mTagBFP2"),
     ALSimulatorDataset.COMBINGYM_SACAS9.name: _combingym("SaCas9"),
+})
+
+
+_FLIP2_RAW = "datasets/engineering/raw/flip2"
+
+_DATASET_DEFINITIONS.update({
+    # Continuous growth-based fitness. The parent is Tm9D8*, an engineered TmTrpB variant rather than
+    # wild-type TmTrpB, reconstructed by compile_flip2.py (see the FLIP2 README).
+    ALSimulatorDataset.FLIP2_TRPB.name: ALSimulatorDatasetDefinition(
+        fasta_path="datasets/engineering/flip2_TrpB_max2000.fasta",
+        reference_fasta_path=f"{_FLIP2_RAW}/trpb/TrpB_wt.fasta",
+        optimization_mode=ActiveLearningOptimizationMode.MAXIMIZE),
+    # An ordinal activity ladder rather than a measurement: 0 non-functional, 1 active, 2 better than
+    # wild type, 3 better than the known A73R variant. DISCRETE on {2, 3} therefore means "beats the
+    # wild type" (19.3% of the pool); narrow it to ["3"] for a far harder screen (0.36%, 199 seqs).
+    ALSimulatorDataset.FLIP2_NUCB.name: ALSimulatorDatasetDefinition(
+        fasta_path="datasets/engineering/flip2_NucB_max2000.fasta",
+        reference_fasta_path=f"{_FLIP2_RAW}/nucb/NucB_wt.fasta",
+        optimization_mode=ActiveLearningOptimizationMode.DISCRETE,
+        discrete_targets=["2", "3"]),
 })

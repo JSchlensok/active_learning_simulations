@@ -36,6 +36,8 @@ def main():
                  Path("engineering/raw/combingym_CR9114.fasta"),
                  Path("engineering/raw/combingym_mTagBFP2.fasta"),
                  Path("engineering/raw/combingym_SaCas9.fasta"),
+                 Path("engineering/raw/flip2_TrpB.fasta"),
+                 Path("engineering/raw/flip2_NucB.fasta"),
                  ]
     seq_length_limit = 2000
     for raw_path in raw_paths:
