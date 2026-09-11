@@ -694,8 +694,8 @@ def main():
         if hasattr(stop_cfg, 'n_hits') and stop_cfg.n_hits is not None:
             st.markdown(f"  - Number of Hits: {stop_cfg.n_hits}",
                         help="Stops the campaign when this number of targets (hits) is found.")
-        if hasattr(stop_cfg, 'max_iterations') and stop_cfg.max_iterations is not None:
-            st.markdown(f"  - Max Iterations: {stop_cfg.max_iterations}",
+        if hasattr(stop_cfg, 'n_max_iterations') and stop_cfg.n_max_iterations is not None:
+            st.markdown(f"  - Max Iterations: {stop_cfg.n_max_iterations}",
                         help="Always stops the campaign after this number of iterations.")
         if hasattr(stop_cfg, 'max_consecutive_failures') and stop_cfg.max_consecutive_failures is not None:
             st.markdown(f"  - Max Consecutive Failures: {stop_cfg.max_consecutive_failures}",
