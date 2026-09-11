@@ -27,4 +27,4 @@ dev = [
 override-dependencies = ["biocentral-api"]
 
 [tool.uv.sources]
-biocentral-api = { path = "../biocentral_api/python", editable = true }
+biocentral-api = { path = "../biocentral/biocentral_api/python", editable = true }

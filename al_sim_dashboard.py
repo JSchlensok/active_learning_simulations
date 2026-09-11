@@ -689,16 +689,16 @@ def main():
         st.markdown(f"**Suggestions per Iteration:** {simulation_config.n_suggestions_per_iteration}",
                     help="Number of suggestions selected per iteration of each campaign.")
 
-        conv_cfg = simulation_config.convergence_config
-        st.markdown("**Convergence Criteria:**", help="Determines when the simulated campaign should stop.")
-        if hasattr(conv_cfg, 'n_hits') and conv_cfg.n_hits is not None:
-            st.markdown(f"  - Number of Hits: {conv_cfg.n_hits}",
+        stop_cfg = simulation_config.stopping_config
+        st.markdown("**Stopping Criteria:**", help="Determines when the simulated campaign should stop.")
+        if hasattr(stop_cfg, 'n_hits') and stop_cfg.n_hits is not None:
+            st.markdown(f"  - Number of Hits: {stop_cfg.n_hits}",
                         help="Stops the campaign when this number of targets (hits) is found.")
-        if hasattr(conv_cfg, 'max_iterations') and conv_cfg.max_iterations is not None:
-            st.markdown(f"  - Max Iterations: {conv_cfg.max_iterations}",
+        if hasattr(stop_cfg, 'max_iterations') and stop_cfg.max_iterations is not None:
+            st.markdown(f"  - Max Iterations: {stop_cfg.max_iterations}",
                         help="Always stops the campaign after this number of iterations.")
-        if hasattr(conv_cfg, 'max_consecutive_failures') and conv_cfg.max_consecutive_failures is not None:
-            st.markdown(f"  - Max Consecutive Failures: {conv_cfg.max_consecutive_failures}",
+        if hasattr(stop_cfg, 'max_consecutive_failures') and stop_cfg.max_consecutive_failures is not None:
+            st.markdown(f"  - Max Consecutive Failures: {stop_cfg.max_consecutive_failures}",
                         help="Stops the campaign after this number of consecutive failures (no hits found in an iteration).")
 
     subset = ds_groups[selected_dataset]
