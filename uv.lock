@@ -8,7 +8,7 @@ resolution-markers = [
 ]
 
 [manifest]
-overrides = [{ name = "biocentral-api", editable = "../biocentral_api/python" }]
+overrides = [{ name = "biocentral-api", editable = "../biocentral/biocentral_api/python" }]
 
 [[package]]
 name = "active-learning-simulations"
@@ -35,7 +35,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "altair", specifier = ">=5.3" },
-    { name = "biocentral-api", editable = "../biocentral_api/python" },
+    { name = "biocentral-api", editable = "../biocentral/biocentral_api/python" },
     { name = "biocentral-vis", git = "https://github.com/biocentral/biocentral_vis.git?subdirectory=python&rev=8891271146175d196e77ff003ff4ba3fca9a15fc" },
     { name = "biotrainer-core", specifier = ">=2.0.0,<3.0.0" },
     { name = "openpyxl", specifier = ">=3.1" },
@@ -145,7 +145,7 @@ wheels = [
 [[package]]
 name = "biocentral-api"
 version = "2.0.0"
-source = { editable = "../biocentral_api/python" }
+source = { editable = "../biocentral/biocentral_api/python" }
 dependencies = [
     { name = "biotrainer-core" },
     { name = "pydantic" },

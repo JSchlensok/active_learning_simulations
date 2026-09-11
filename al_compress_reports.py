@@ -71,7 +71,7 @@ def compress_reports(run_name: str):
                 iteration_hits=list(ssr.simulation_result.iteration_hits or []),
                 iteration_consecutive_failures=list(ssr.simulation_result.iteration_consecutive_failures or []),
                 iteration_results_count=len(ssr.simulation_result.iteration_results or []),
-                n_hits_threshold=ssr.al_simulation_config.convergence_config.n_hits,
+                n_hits_threshold=ssr.al_simulation_config.stopping_config.n_hits,
             )
             single_sims.append(sim_data)
 
