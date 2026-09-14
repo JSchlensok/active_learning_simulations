@@ -1,13 +1,13 @@
 from pathlib import Path
 from biotrainer_core.input_files import read_FASTA
 from pydantic import BaseModel, Field
-from biocentral_api import ActiveLearningModelType, CommonEmbedder, BiocentralAPI
+from biocentral_api import ActiveLearningModelType, CommonEmbedder
 
 from al_paths import RESULTS_DIR, PROJECTIONS_DIR
 from al_compress_reports import compress_reports
 from al_simulation_container import ALSimulatorDataset
 from al_splits import ALSimulatorSplit
-from al_simulator import ActiveLearningMultipleSimulationResult, get_simulator
+from al_simulator import ActiveLearningMultipleSimulationResult, biocentral_api, get_simulator
 
 
 class ExperimentConstants:
@@ -92,11 +92,10 @@ def _create_projection(experiment_params: ExperimentParametersV1):
         return
 
     sequence_data = read_FASTA(experiment_params.dataset_id.to_path())
-    biocentral_api = BiocentralAPI()
-    projection_result = biocentral_api.project(embedder_name=experiment_params.embedder_name,
-                                               method="pca",
-                                               sequence_data=sequence_data,
-                                               projection_config={"n_components": "2"}).run()
+    projection_result = biocentral_api().project(embedder_name=experiment_params.embedder_name,
+                                                 method="pca",
+                                                 sequence_data=sequence_data,
+                                                 projection_config={"n_components": "2"}).run()
 
     with open(projection_path, "w") as f:
         f.write(projection_result.model_dump_json())
