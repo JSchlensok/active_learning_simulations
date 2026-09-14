@@ -7,11 +7,12 @@ from al_paths import RESULTS_DIR, PROJECTIONS_DIR
 from al_compress_reports import compress_reports
 from al_simulation_container import ALSimulatorDataset
 from al_splits import ALSimulatorSplit
-from al_simulator import ActiveLearningMultipleSimulationResult, biocentral_api, get_simulator
+from al_simulator import (CAMPAIGN_SETTINGS, ActiveLearningMultipleSimulationResult,
+                          biocentral_api, get_simulator)
 
 
 class ExperimentConstants:
-    n_rounds: int = 5
+    n_rounds: int = CAMPAIGN_SETTINGS.n_rounds
     result_dir: Path = RESULTS_DIR
     projection_dir: Path = PROJECTIONS_DIR
 
@@ -25,9 +26,13 @@ class ExperimentParametersV1(BaseModel):
 
     def to_file_name(self):
         embedder_name = self.embedder_name.replace("/", "-")
-        # The identity split is left out of the name so results predating splits keep resolving.
+        # The identity split contributes no suffix, so the common case stays readable.
         split_suffix = "" if self.split_id.is_identity() else f"_{self.split_id.name}"
-        return f"al_sim_{self.dataset_id.name}_{embedder_name}_{self.model_type.value}{split_suffix}.json"
+        # The campaign knobs are not otherwise in the name, and the name is the resume key,
+        # so without this a changed budget or seed series would silently reuse old results.
+        settings = CAMPAIGN_SETTINGS.fingerprint()
+        return (f"al_sim_{self.dataset_id.name}_{embedder_name}_{self.model_type.value}"
+                f"{split_suffix}_{settings}.json")
 
 
 def _create_experiment_params():

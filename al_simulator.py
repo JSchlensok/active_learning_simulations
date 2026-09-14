@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import numpy as np
 import altair as alt
@@ -7,7 +8,7 @@ import altair as alt
 from functools import cache
 from pathlib import Path
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from biotrainer_core.input_files import read_FASTA
 
 from al_simulation_container import ALSimulatorDataset
@@ -141,6 +142,27 @@ def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
     return pool, assignment.train_ids
 
 
+class CampaignSettings(BaseModel):
+    """Campaign settings that the result file name does not otherwise capture."""
+
+    model_config = ConfigDict(frozen=True)
+
+    n_start: int = 10
+    n_suggestions_per_iteration: int = 5
+    max_labels_budget: Optional[int] = 50
+    n_hits: Optional[int] = 10
+    max_consecutive_failures: Optional[int] = 5
+    n_rounds: int = 5
+    first_seed: int = 42
+
+    def fingerprint(self) -> str:
+        digest = hashlib.sha256(self.model_dump_json().encode("utf-8"))
+        return digest.hexdigest()[:8]
+
+
+CAMPAIGN_SETTINGS = CampaignSettings()
+
+
 @cache
 def biocentral_api() -> BiocentralAPI:
     """The local biocentral server, health-checked once per process."""
@@ -155,15 +177,16 @@ class ActiveLearningSimulator:
         # start_ids and n_start are mutually exclusive: a split pins the starting set explicitly,
         # otherwise the campaign draws n_start sequences at random.
         start_ids = self.base_config.start_ids
+        settings = CAMPAIGN_SETTINGS
         return ActiveLearningScreeningSimulationConfig(simulation_data=self.base_config.simulation_data,
-                                                       n_start=None if start_ids else 10,  # TODO
+                                                       n_start=None if start_ids else settings.n_start,
                                                        start_ids=start_ids,
-                                                       n_suggestions_per_iteration=5,  # TODO
+                                                       n_suggestions_per_iteration=settings.n_suggestions_per_iteration,
                                                        stopping_config=ActiveLearningStoppingConfig(
-                                                           max_labels_budget=50,
-                                                           n_hits=10,
-                                                           max_consecutive_failures=5
-                                                       ),  # TODO
+                                                           max_labels_budget=settings.max_labels_budget,
+                                                           n_hits=settings.n_hits,
+                                                           max_consecutive_failures=settings.max_consecutive_failures,
+                                                       ),
                                                        )
 
     def _run_simulation(self, model_type: ActiveLearningModelType, embedder_name: str,
@@ -195,7 +218,7 @@ class ActiveLearningSimulator:
         simulation_results = []
         for iteration_idx in range(n_rounds):
             print(f"Running simulation round {iteration_idx + 1}/{n_rounds}...")
-            seed = 42 + iteration_idx
+            seed = CAMPAIGN_SETTINGS.first_seed + iteration_idx
             single_simulation_result = self._run_simulation(model_type=model_type,
                                                             embedder_name=embedder_name,
                                                             seed=seed)
