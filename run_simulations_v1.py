@@ -34,7 +34,7 @@ def _create_experiment_params():
     experiment_params = []
     dataset_ids = ALSimulatorDataset.all()
     embedder_names = [
-        CommonEmbedder.ESM_8M.value,
+        CommonEmbedder.ESM2_8M.value,
         CommonEmbedder.ESM2_650M.value,
         CommonEmbedder.ONE_HOT_ENCODING.value,
         CommonEmbedder.LENGTH_EMBEDDER.value,
