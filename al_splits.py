@@ -1029,16 +1029,6 @@ class ALSimulatorSplitDefinition(BaseModel):
 class ALSimulatorSplit(Enum):
     # The values are stored in the compressed dashboard data, so do not reorder these members
     FULL_POOL = auto()
-    NUMBER_1_VS_REST = auto()
-    NUMBER_2_VS_REST = auto()
-    NUMBER_3_VS_REST = auto()
-    POSITION_HOLDOUT_THIRD = auto()
-    MUTATION_HOLDOUT_20PCT = auto()
-    SCORE_LOW_TO_HIGH_P80 = auto()
-    SCORE_HIGH_TO_LOW_P80 = auto()
-    SCORE_LOW_TO_HIGH_SEED100 = auto()
-    DISCRETE_SEED_NON_TARGET = auto()
-    LOW_ORDER_POOL_1_VS_REST = auto()
 
     @staticmethod
     def all() -> List["ALSimulatorSplit"]:
@@ -1071,65 +1061,5 @@ class ALSimulatorSplit(Enum):
 _SPLIT_DEFINITIONS: Dict[str, ALSimulatorSplitDefinition] = {
     ALSimulatorSplit.FULL_POOL.name: ALSimulatorSplitDefinition(
         description="No restriction: the campaign may start anywhere in the pool.",
-        strategy=None,
-    ),
-    # NUMBER — CombinGym's n-vs-rest, FLIP2's number, METL's regime extrapolation.
-    ALSimulatorSplit.NUMBER_1_VS_REST.name: ALSimulatorSplitDefinition(
-        description="Start from the parent and single substitutions only (CombinGym '1-vs-rest').",
-        strategy=MutationNumberSplit(max_train_mutations=1),
-    ),
-    ALSimulatorSplit.NUMBER_2_VS_REST.name: ALSimulatorSplitDefinition(
-        description="Start from variants with at most two substitutions (CombinGym '2-vs-rest').",
-        strategy=MutationNumberSplit(max_train_mutations=2),
-    ),
-    ALSimulatorSplit.NUMBER_3_VS_REST.name: ALSimulatorSplitDefinition(
-        description="Start from variants with at most three substitutions (CombinGym '3-vs-rest').",
-        strategy=MutationNumberSplit(max_train_mutations=3),
-    ),
-    # POSITION — FLIP2's by_position, METL's position extrapolation.
-    ALSimulatorSplit.POSITION_HOLDOUT_THIRD.name: ALSimulatorSplitDefinition(
-        description="Hold out a third of the mutated positions; the campaign never starts with a "
-        "variant touching them.",
-        strategy=PositionSplit(test_fraction=1 / 3, seed=42),
-    ),
-    # MUTATION — FLIP2's by_mutation, METL's mutation extrapolation.
-    ALSimulatorSplit.MUTATION_HOLDOUT_20PCT.name: ALSimulatorSplitDefinition(
-        description="Hold out 20% of the distinct substitutions: positions are seen during training, "
-        "the specific replacements are not.",
-        strategy=MutationSplit(test_fraction=0.2, seed=42),
-    ),
-    # SCORE — FLIP2's low_to_high, METL's score extrapolation. The axis closest to what a
-    # screening campaign is for, so both directions are registered.
-    ALSimulatorSplit.SCORE_LOW_TO_HIGH_P80.name: ALSimulatorSplitDefinition(
-        description="Start from the lowest-scoring 80% and reach the top 20% (MAXIMIZE datasets).",
-        strategy=ScoreSplit(train_quantile=0.8, train_on=ScoreEnd.LOW),
-    ),
-    ALSimulatorSplit.SCORE_HIGH_TO_LOW_P80.name: ALSimulatorSplitDefinition(
-        description="Start from the highest-scoring 80% and reach the bottom 20% (MINIMIZE datasets).",
-        strategy=ScoreSplit(train_quantile=0.8, train_on=ScoreEnd.HIGH),
-    ),
-    ALSimulatorSplit.SCORE_LOW_TO_HIGH_SEED100.name: ALSimulatorSplitDefinition(
-        description="Realistic screening variant of the score axis: start from 100 measured variants "
-        "drawn from the lowest-scoring 80%, and try to reach the top 20%.",
-        strategy=ScoreSplit(train_quantile=0.8, train_on=ScoreEnd.LOW),
-        max_train_size=100,
-    ),
-    # CUSTOM — rules the five benchmark axes do not reach, built from the selector algebra.
-    ALSimulatorSplit.DISCRETE_SEED_NON_TARGET.name: ALSimulatorSplitDefinition(
-        description="Start from 100 sequences that are NOT the sought class, so every hit has to be "
-        "discovered. The only split shape available to the DISCRETE datasets (SCL, "
-        "EXOTOX), whose class labels no numeric rule can order — set `labels` to the "
-        "dataset's non-target classes.",
-        strategy=SelectorSplit(
-            selector=Complement(selector=LabelIn(labels=["Peroxisome"]))
-        ),
-        max_train_size=100,
-    ),
-    ALSimulatorSplit.LOW_ORDER_POOL_1_VS_REST.name: ALSimulatorSplitDefinition(
-        description="Restrict the pool to the low-order corner of a landscape (<=3 substitutions), "
-        "then run 1-vs-rest inside it. Shows pool_selector: the deep combinatorial tail "
-        "is removed from the simulation entirely, not merely withheld from the start.",
-        pool_selector=MutationCount(max_mutations=3),
-        strategy=MutationNumberSplit(max_train_mutations=1),
-    ),
+        strategy=None),
 }

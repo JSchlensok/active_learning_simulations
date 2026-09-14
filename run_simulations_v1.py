@@ -44,9 +44,8 @@ def _create_experiment_params():
     ]
     model_types = [ActiveLearningModelType.GAUSSIAN_PROCESS, ActiveLearningModelType.FNN_MCD,
                    ActiveLearningModelType.RANDOM]
-    # Fourth grid axis, currently pinned to the identity split so the matrix is unchanged. Adding
-    # e.g. ALSimulatorSplit.NUMBER_2_VS_REST here multiplies the grid; note that the mutation-aware
-    # axes only work on datasets that declare a reference sequence (see al_splits).
+    # Fourth grid axis, currently pinned to the identity split so the matrix is unchanged.
+    # Mutation-aware rules only work on datasets that declare a reference sequence.
     split_ids = [ALSimulatorSplit.FULL_POOL]
     for dataset_id in dataset_ids:
         for embedder_name in embedder_names:
