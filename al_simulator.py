@@ -4,6 +4,7 @@ import json
 import numpy as np
 import altair as alt
 
+from functools import cache
 from pathlib import Path
 from typing import List, Optional
 from pydantic import BaseModel, Field
@@ -140,13 +141,15 @@ def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
     return pool, assignment.train_ids
 
 
+@cache
+def biocentral_api() -> BiocentralAPI:
+    """The local biocentral server, health-checked once per process."""
+    return BiocentralAPI(local_only=True).wait_until_healthy()
+
+
 class ActiveLearningSimulator:
     def __init__(self, al_base_config: ActiveLearningFixedBaseConfig):
         self.base_config = al_base_config
-
-    @staticmethod
-    def _biocentral_api():
-        return BiocentralAPI()
 
     def get_simulation_config(self):
         # start_ids and n_start are mutually exclusive: a split pins the starting set explicitly,
@@ -175,8 +178,8 @@ class ActiveLearningSimulator:
                                                                    target_value=self.base_config.target_value,
                                                                    discrete_targets=self.base_config.discrete_targets)
         al_simulation_config = self.get_simulation_config()
-        result = self._biocentral_api().al_screening_simulation(campaign_config=al_campaign_config,
-                                                                simulation_config=al_simulation_config).run_with_progress()
+        result = biocentral_api().al_screening_simulation(campaign_config=al_campaign_config,
+                                                          simulation_config=al_simulation_config).run_with_progress()
         if result is None:
             raise RuntimeError("Simulation failed")
 
