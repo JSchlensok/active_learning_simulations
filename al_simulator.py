@@ -61,6 +61,54 @@ class DashboardCompressedData(BaseModel):
     experiments: List[DashboardExperimentData]
 
 
+class CampaignSettings(BaseModel):
+    """Defines how a simulated campaign acquires labelled variants.
+
+    Models a lab budget: `n_iterations` experimental rounds of
+    `n_suggestions_per_iteration` variants each.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    short_name: str = Field(description="Tag identifying the regime, used in file names")
+    n_start: int = Field(description="Starting set size, including wildtype / parent")
+    n_suggestions_per_iteration: int = Field(description="Variants measured per round")
+    n_iterations: int = Field(default=8, description="Rounds a campaign is allowed")
+    n_replicates: int = Field(default=5, description="Seeded repeats per experiment")
+    first_seed: int = Field(default=42, description="Seed of the first replicate")
+    redraw_start_set: bool = Field(
+        default=True,
+        description="Draw a fresh starting set per replicate. False shares one across all "
+                    "replicates, so they vary only in model stochasticity.")
+    # Stopping criteria. `n_iterations` always applies; these two are opt-in, so by default
+    # a campaign spends its whole budget and the hit rate covers the full 8 rounds. The
+    # server requires at least one of budget / hits / failed-rounds, which the derived
+    # `max_labels_budget` always satisfies.
+    stop_at_n_hits: Optional[int] = Field(
+        default=None,
+        description="Stop once this many hits are found. Spends full budget if set to None.")
+    stop_after_failed_rounds: Optional[int] = Field(
+        default=None,
+        description="Stop after this many consecutive rounds without a hit.")
+
+    @property
+    def max_labels_budget(self) -> int:
+        """Total variants a campaign may measure. Derived, so it cannot contradict the rounds."""
+        return self.n_iterations * self.n_suggestions_per_iteration
+
+    def fingerprint(self) -> str:
+        digest = hashlib.sha256(self.model_dump_json().encode("utf-8"))
+        return digest.hexdigest()[:8]
+
+
+LOW_THROUGHPUT = CampaignSettings(short_name="low", n_start=10, n_suggestions_per_iteration=5)
+HIGH_THROUGHPUT = CampaignSettings(short_name="high", n_start=96, n_suggestions_per_iteration=48)
+THROUGHPUTS = {settings.short_name: settings for settings in (LOW_THROUGHPUT, HIGH_THROUGHPUT)}
+
+# Default for callers that do not choose a regime
+CAMPAIGN_SETTINGS = LOW_THROUGHPUT
+
+
 class ActiveLearningFixedBaseConfig(BaseModel):
     class Config:
         frozen = False
@@ -75,6 +123,7 @@ class ActiveLearningFixedBaseConfig(BaseModel):
     # Split config (see al_splits). FULL_POOL is the identity split and changes nothing.
     split_id: ALSimulatorSplit = ALSimulatorSplit.FULL_POOL
     start_ids: Optional[List[str]] = None
+    settings: CampaignSettings = CAMPAIGN_SETTINGS
 
     # Campaign config
     optimization_mode: ActiveLearningOptimizationMode
@@ -142,26 +191,6 @@ def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
     return pool, assignment.train_ids
 
 
-class CampaignSettings(BaseModel):
-    """Campaign settings that the result file name does not otherwise capture."""
-
-    model_config = ConfigDict(frozen=True)
-
-    n_start: int = 10
-    n_suggestions_per_iteration: int = 5
-    max_labels_budget: Optional[int] = 50
-    n_hits: Optional[int] = 10
-    max_consecutive_failures: Optional[int] = 5
-    n_rounds: int = 5
-    first_seed: int = 42
-
-    def fingerprint(self) -> str:
-        digest = hashlib.sha256(self.model_dump_json().encode("utf-8"))
-        return digest.hexdigest()[:8]
-
-
-CAMPAIGN_SETTINGS = CampaignSettings()
-
 
 @cache
 def biocentral_api() -> BiocentralAPI:
@@ -174,20 +203,21 @@ class ActiveLearningSimulator:
         self.base_config = al_base_config
 
     def get_simulation_config(self):
-        # start_ids and n_start are mutually exclusive: a split pins the starting set explicitly,
-        # otherwise the campaign draws n_start sequences at random.
+        # start_ids and n_start are mutually exclusive: a pinned starting set or a random draw.
         start_ids = self.base_config.start_ids
-        settings = CAMPAIGN_SETTINGS
-        return ActiveLearningScreeningSimulationConfig(simulation_data=self.base_config.simulation_data,
-                                                       n_start=None if start_ids else settings.n_start,
-                                                       start_ids=start_ids,
-                                                       n_suggestions_per_iteration=settings.n_suggestions_per_iteration,
-                                                       stopping_config=ActiveLearningStoppingConfig(
-                                                           max_labels_budget=settings.max_labels_budget,
-                                                           n_hits=settings.n_hits,
-                                                           max_consecutive_failures=settings.max_consecutive_failures,
-                                                       ),
-                                                       )
+        settings = self.base_config.settings
+        return ActiveLearningScreeningSimulationConfig(
+            simulation_data=self.base_config.simulation_data,
+            n_start=None if start_ids else settings.n_start,
+            start_ids=start_ids,
+            n_suggestions_per_iteration=settings.n_suggestions_per_iteration,
+            stopping_config=ActiveLearningStoppingConfig(
+                n_max_iterations=settings.n_iterations,
+                max_labels_budget=settings.max_labels_budget,
+                n_hits=settings.stop_at_n_hits,
+                max_consecutive_failures=settings.stop_after_failed_rounds,
+            ),
+        )
 
     def _run_simulation(self, model_type: ActiveLearningModelType, embedder_name: str,
                         seed: int) -> ActiveLearningSingleSimulationResult:
@@ -218,7 +248,7 @@ class ActiveLearningSimulator:
         simulation_results = []
         for iteration_idx in range(n_rounds):
             print(f"Running simulation round {iteration_idx + 1}/{n_rounds}...")
-            seed = CAMPAIGN_SETTINGS.first_seed + iteration_idx
+            seed = self.base_config.settings.first_seed + iteration_idx
             single_simulation_result = self._run_simulation(model_type=model_type,
                                                             embedder_name=embedder_name,
                                                             seed=seed)
