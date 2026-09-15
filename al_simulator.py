@@ -304,6 +304,23 @@ class ActiveLearningSingleSimulationResult:
             return False  # No hit threshold to measure success against
         return sum(map(len, self.simulation_result.iteration_hits or [])) >= required_n_hits
 
+    def n_hits_found(self) -> int:
+        return sum(map(len, self.simulation_result.iteration_hits or []))
+
+    def n_measured(self) -> int:
+        """Variants the campaign actually had labelled, excluding the starting set."""
+        return sum(len(result.suggestions or [])
+                   for result in (self.simulation_result.iteration_results or []))
+
+    def hit_rate(self) -> Optional[float]:
+        """Fraction of measured variants that turned out to be hits.
+
+        Threshold-free, so it stays meaningful when no hit target is configured and the
+        campaign spends its whole budget. None when nothing was measured.
+        """
+        measured = self.n_measured()
+        return self.n_hits_found() / measured if measured else None
+
     @staticmethod
     def _print_stats(result: ActiveLearningScreeningSimulationResult):
         print(f"Simulation campaign stats:")
@@ -465,9 +482,19 @@ class ActiveLearningMultipleSimulationResult:
     def _percent_successful(self):
         return sum([1 for ssr in self.simulation_results if ssr.is_success()]) / len(self.simulation_results) * 100
 
+    def mean_hit_rate(self) -> Optional[float]:
+        rates = [rate for rate in (ssr.hit_rate() for ssr in self.simulation_results)
+                 if rate is not None]
+        return sum(rates) / len(rates) if rates else None
+
     def print_stats(self):
         print(f"Summary over {len(self.simulation_results)} simulations:")
         print(f"Percent successful: {self._percent_successful()}%")
+        measured = [ssr.n_measured() for ssr in self.simulation_results]
+        hits = [ssr.n_hits_found() for ssr in self.simulation_results]
+        rate = self.mean_hit_rate()
+        print(f"Mean hits: {sum(hits) / len(hits):.1f} of {sum(measured) / len(measured):.0f} "
+              f"measured | mean hit rate: {'n/a' if rate is None else f'{rate:.2%}'}")
 
     def _compose_layout(self, charts: dict) -> alt.HConcatChart:
         return alt.hconcat(
