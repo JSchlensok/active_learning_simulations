@@ -220,7 +220,8 @@ class ActiveLearningSimulator:
         )
 
     def _run_simulation(self, model_type: ActiveLearningModelType, embedder_name: str,
-                        seed: int) -> ActiveLearningSingleSimulationResult:
+                        seed: int,
+                        show_progress: bool = True) -> ActiveLearningSingleSimulationResult:
         al_campaign_config = ActiveLearningScreeningCampaignConfig(name="Test",  # TODO
                                                                    embedder_name=embedder_name,
                                                                    model_type=model_type,
@@ -231,8 +232,11 @@ class ActiveLearningSimulator:
                                                                    target_value=self.base_config.target_value,
                                                                    discrete_targets=self.base_config.discrete_targets)
         al_simulation_config = self.get_simulation_config()
-        result = biocentral_api().al_screening_simulation(campaign_config=al_campaign_config,
-                                                          simulation_config=al_simulation_config).run_with_progress()
+        task = biocentral_api().al_screening_simulation(campaign_config=al_campaign_config,
+                                                        simulation_config=al_simulation_config)
+        # Concurrent callers pass show_progress=False: several tqdm bars writing to one
+        # terminal interleave into noise.
+        result = task.run_with_progress() if show_progress else task.run()
         if result is None:
             raise RuntimeError("Simulation failed")
 
@@ -244,14 +248,17 @@ class ActiveLearningSimulator:
             simulation_result=result)
 
     def simulate(self, embedder_name: str, model_type: ActiveLearningModelType,
-                 n_rounds: int) -> ActiveLearningMultipleSimulationResult:
+                 n_rounds: int,
+                 show_progress: bool = True) -> ActiveLearningMultipleSimulationResult:
         simulation_results = []
         for iteration_idx in range(n_rounds):
-            print(f"Running simulation round {iteration_idx + 1}/{n_rounds}...")
+            if show_progress:
+                print(f"Running simulation round {iteration_idx + 1}/{n_rounds}...")
             seed = self.base_config.settings.first_seed + iteration_idx
             single_simulation_result = self._run_simulation(model_type=model_type,
                                                             embedder_name=embedder_name,
-                                                            seed=seed)
+                                                            seed=seed,
+                                                            show_progress=show_progress)
             simulation_results.append(single_simulation_result)
         return ActiveLearningMultipleSimulationResult(simulation_results)
 
