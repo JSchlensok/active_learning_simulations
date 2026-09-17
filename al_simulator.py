@@ -192,6 +192,9 @@ def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
 
 
 
+STORE_PREDICTIONS = False
+
+
 @cache
 def biocentral_api() -> BiocentralAPI:
     """The local biocentral server, health-checked once per process."""
@@ -233,7 +236,8 @@ class ActiveLearningSimulator:
                                                                    discrete_targets=self.base_config.discrete_targets)
         al_simulation_config = self.get_simulation_config()
         task = biocentral_api().al_screening_simulation(campaign_config=al_campaign_config,
-                                                        simulation_config=al_simulation_config)
+                                                        simulation_config=al_simulation_config,
+                                                        store_predictions=STORE_PREDICTIONS)
         # Concurrent callers pass show_progress=False: several tqdm bars writing to one
         # terminal interleave into noise.
         result = task.run_with_progress() if show_progress else task.run()
