@@ -19,6 +19,8 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "ipykernel>=6.29",
+    "jupyterlab>=4.2",
     "mypy>=1.5",
     "ruff>=0.16.4",
 ]
