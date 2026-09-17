@@ -194,6 +194,33 @@ def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
 
 STORE_PREDICTIONS = False
 
+TASK_TIMINGS: List[tuple] = []
+
+
+def profile_summary(slowest: int = 5) -> str:
+    """Where client-side wall time went across every campaign run so far."""
+    if not TASK_TIMINGS:
+        return "No campaigns timed."
+    totals = {bucket: sum(getattr(timing, bucket) for _, timing in TASK_TIMINGS)
+              for bucket in ("total", "http", "sleep", "handler")}
+    polls = sum(timing.polls for _, timing in TASK_TIMINGS)
+    dtos = sum(timing.dtos for _, timing in TASK_TIMINGS)
+    # Whatever is left is server compute the client polled through.
+    waited = totals["total"] - totals["http"] - totals["sleep"] - totals["handler"]
+
+    lines = [f"{len(TASK_TIMINGS)} campaigns, {totals['total']:.0f}s of client wall time "
+             f"({polls} polls, {dtos} dtos)"]
+    for label, value in (("http (+deserialise)", totals["http"]),
+                         ("sleep (poll interval)", totals["sleep"]),
+                         ("handler", totals["handler"]),
+                         ("waited on server", waited)):
+        share = value / totals["total"] * 100 if totals["total"] else 0
+        lines.append(f"  {label:<22} {value:8.0f}s  {share:5.1f}%")
+    lines.append(f"  slowest {slowest} campaigns:")
+    for label, timing in sorted(TASK_TIMINGS, key=lambda kv: -kv[1].total)[:slowest]:
+        lines.append(f"    {timing.total:7.1f}s  {label}")
+    return "\n".join(lines)
+
 
 @cache
 def biocentral_api() -> BiocentralAPI:
@@ -241,6 +268,11 @@ class ActiveLearningSimulator:
         # Concurrent callers pass show_progress=False: several tqdm bars writing to one
         # terminal interleave into noise.
         result = task.run_with_progress() if show_progress else task.run()
+        TASK_TIMINGS.append((
+            f"{self.base_config.dataset_id.name}/{embedder_name}/{model_type.value}"
+            f"/{self.base_config.settings.short_name}/seed{seed}",
+            task.timing,
+        ))
         if result is None:
             raise RuntimeError("Simulation failed")
 
