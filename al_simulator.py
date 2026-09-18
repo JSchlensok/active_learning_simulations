@@ -372,9 +372,11 @@ class ActiveLearningSingleSimulationResult:
         print(f"Metrics for all masked data points per iteration: {result.iteration_metrics_total}")
         print(f"Metrics for suggested data points per iteration: {result.iteration_metrics_suggestions}")
         print(f"Number of hits over iterations: {list(map(len, result.iteration_hits or []))}")
-        filtered_results_suggestions = [[sugg for sugg in res.results if sugg.entity_id in res.suggestions][0]
+        # Empty when predictions were not stored, see STORE_PREDICTIONS
+        filtered_results_suggestions = [next((sugg for sugg in res.results if sugg.entity_id in res.suggestions), None)
                                         for res in result.iteration_results or []]
-        print(f"Iteration result for top suggestion: {filtered_results_suggestions}")
+        if any(sugg is not None for sugg in filtered_results_suggestions):
+            print(f"Iteration result for top suggestion: {filtered_results_suggestions}")
 
     def _compose_layout(self, charts: dict) -> alt.VConcatChart:
         top = alt.hconcat(charts["metric_evolution"], charts["n_hits"])
