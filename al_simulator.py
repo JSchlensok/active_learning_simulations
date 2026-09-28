@@ -263,8 +263,7 @@ class ActiveLearningSimulator:
                                                                    discrete_targets=self.base_config.discrete_targets)
         al_simulation_config = self.get_simulation_config()
         task = biocentral_api().al_screening_simulation(campaign_config=al_campaign_config,
-                                                        simulation_config=al_simulation_config,
-                                                        store_predictions=STORE_PREDICTIONS)
+                                                        simulation_config=al_simulation_config)
         # Concurrent callers pass show_progress=False: several tqdm bars writing to one
         # terminal interleave into noise.
         result = task.run_with_progress() if show_progress else task.run()
@@ -275,6 +274,9 @@ class ActiveLearningSimulator:
         ))
         if result is None:
             raise RuntimeError("Simulation failed")
+        if not STORE_PREDICTIONS:
+            for iteration_result in result.iteration_results or []:
+                iteration_result.results = []
 
         return ActiveLearningSingleSimulationResult(
             dataset_id=self.base_config.dataset_id,
