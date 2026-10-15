@@ -26,3 +26,5 @@ Thumbs.db
 
 # Artifacts
 plots/
+simulation_*_results/
+simulation_*_projections/
