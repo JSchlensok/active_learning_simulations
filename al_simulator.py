@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from biotrainer_core.input_files import read_FASTA
 
 from al_simulation_container import ALSimulatorDataset
-from al_splits import ALSimulatorSplit
+from al_splits import ALSimulatorSplit, date_seed
 
 from biocentral_api import SequenceData, ActiveLearningScreeningCampaignConfig, ActiveLearningScreeningSimulationConfig, \
     ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, \
@@ -75,7 +75,10 @@ class CampaignSettings(BaseModel):
     n_suggestions_per_iteration: int = Field(description="Variants measured per round")
     n_iterations: int = Field(default=8, description="Rounds a campaign is allowed")
     n_replicates: int = Field(default=5, description="Seeded repeats per experiment")
-    first_seed: int = Field(default=42, description="Seed of the first replicate")
+    first_seed: int = Field(
+        default_factory=date_seed,
+        description="Seed of the first replicate, today as DDMM by default",
+    )
     redraw_start_set: bool = Field(
         default=True,
         description="Draw a fresh starting set per replicate. False shares one across all "
