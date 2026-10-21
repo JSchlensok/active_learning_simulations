@@ -7,9 +7,6 @@ resolution-markers = [
     "sys_platform != 'emscripten' and sys_platform != 'win32'",
 ]
 
-[manifest]
-overrides = [{ name = "biocentral-api", editable = "../biocentral/biocentral_api/python" }]
-
 [[package]]
 name = "active-learning-simulations"
 version = "1.0.0"
@@ -40,7 +37,7 @@ dev = [
 requires-dist = [
     { name = "altair", specifier = ">=5.3" },
     { name = "biocentral-api", editable = "../biocentral/biocentral_api/python" },
-    { name = "biocentral-vis", git = "https://github.com/biocentral/biocentral_vis.git?subdirectory=python&rev=8891271146175d196e77ff003ff4ba3fca9a15fc" },
+    { name = "biocentral-vis", specifier = ">=2.0.0,<3.0.0" },
     { name = "biotrainer-core", specifier = ">=2.0.0,<3.0.0" },
     { name = "openpyxl", specifier = ">=3.1" },
     { name = "pandas", specifier = ">=2.2" },
@@ -282,12 +279,17 @@ dev = [
 
 [[package]]
 name = "biocentral-vis"
-version = "0.1.0"
-source = { git = "https://github.com/biocentral/biocentral_vis.git?subdirectory=python&rev=8891271146175d196e77ff003ff4ba3fca9a15fc#8891271146175d196e77ff003ff4ba3fca9a15fc" }
+version = "2.0.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "altair" },
     { name = "biocentral-api" },
+    { name = "biotrainer-core" },
     { name = "vl-convert-python" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/35/ad/e13d17de84beb6d541115305675951e41fde2a2f2b2728c471fac0baa4c7/biocentral_vis-2.0.0.tar.gz", hash = "sha256:97a822ebfe361f4c4e49842729edde30eb9f38410a7361e3be5544344bb7be85", size = 15096, upload-time = "2026-10-01T15:51:23.15Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fc/78/58a611dd0f651eb00bd600146df1fa0738f907579e020fd8b3b6f1382ec9/biocentral_vis-2.0.0-py3-none-any.whl", hash = "sha256:4d993f39f4105b93ed3dc67f5a256836b6ea6016ae232814e2e701241bc512e0", size = 22407, upload-time = "2026-10-01T15:51:21.98Z" },
 ]
 
 [[package]]
