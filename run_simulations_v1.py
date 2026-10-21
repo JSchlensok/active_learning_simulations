@@ -37,7 +37,7 @@ class ExperimentParametersV1(BaseModel):
 
 def _create_experiment_params():
     experiment_params = []
-    dataset_ids = ALSimulatorDataset.all()
+    dataset_ids = ALSimulatorDataset.screening()
     embedder_names = [
         CommonEmbedder.ESM2_8M.value,
         CommonEmbedder.ESM2_650M.value,

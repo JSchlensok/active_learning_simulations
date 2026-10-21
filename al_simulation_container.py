@@ -28,8 +28,6 @@ class ALSimulatorDataset(Enum):
     AMYLASE = auto()
     PHOT = auto()
     EXOTOX = auto()
-    # Engineering (mutational landscape) datasets. Deliberately NOT in all(), so adding them did
-    # not change the experiment grid — opt in via engineering() once you want to spend the compute.
     COMBINGYM_GB1 = auto()
     COMBINGYM_CREILOV = auto()
     COMBINGYM_CR9114 = auto()
@@ -39,7 +37,7 @@ class ALSimulatorDataset(Enum):
     FLIP2_NUCB = auto()
 
     @staticmethod
-    def all():
+    def screening():
         """The datasets in the experiment grid: the screening pools."""
         return [ALSimulatorDataset.MELTOME_MAXIMIZE,
                 ALSimulatorDataset.MELTOME_MINIMIZE,
