@@ -1,9 +1,5 @@
 """Turn the FLIP2 split CSVs into labelled FASTAs for `dataset_preprocessor.main()`.
 
-Counterpart to `../combingym/compile_combingym.py`: a per-source compile step that lands a labelled
-FASTA one level up, in `engineering/raw/`, where the shared preprocessor writes
-`engineering/flip2_<name>_max<limit>.fasta`.
-
 **Splits are ignored.** Each source CSV carries `set` and `validation` columns holding FLIP2's
 train/test assignment, and this script drops both, keeping every row. These simulations mask all
 labels and replay a campaign over the whole pool, so FLIP2's supervised boundary is not meaningful
