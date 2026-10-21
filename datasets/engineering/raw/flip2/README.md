@@ -30,7 +30,7 @@ uv run python download_flip2.py --datasets trpb --splits by_position
   Johnston et al. 2024, *PNAS* 121(32):e2400439121.
 * **NucB** — *Bacillus licheniformis* nuclease B activity at pH 7, from a four-round ML-guided design
   campaign. 118 of 142 positions vary; variants carry 1–23 substitutions.
-  Thomas et al. 2024, bioRxiv 2024.03.21.585615.
+  Thomas et al. 2025, *Cell Systems* 16(3):101236.
 
 ## CSV format
 
@@ -127,3 +127,36 @@ arbitrary sequence.
 
 **NucB's parent** comes from the [upstream record](https://storage.googleapis.com/nuclease_design/processed_data/landscape.csv)
 (`num_mutations == 0`), since it is genuinely absent from the distributed FLIP2 CSV.
+
+## Citation and License
+
+FLIP2 redistributes all data under CC-BY 4.0, per the paper and its
+[Zenodo record](https://doi.org/10.5281/zenodo.18433203). The `LICENSE` file served next to the split
+files is still the peer-review-only license from submission, which terminates on publication. The
+code in [J-SNACKKB/FLIP](https://github.com/J-SNACKKB/FLIP) is under the Academic Free License 3.0.
+
+> Didi K, Alamdari S, Lu AX, Wittmann BJ, Johnston KE, Amini AP, Madani A, Czeneszew M, Dallago C,
+> Yang KK. FLIP2: Expanding Protein Fitness Landscape Benchmarks for Real-World Machine Learning
+> Applications. *Proceedings of the 43rd International Conference on Machine Learning*, PMLR
+> 306:24724–24777 (2026). [proceedings.mlr.press/v306/didi26a](https://proceedings.mlr.press/v306/didi26a.html)
+
+```bibtex
+@InProceedings{pmlr-v306-didi26a,
+  title     = {{FLIP}2: Expanding Protein Fitness Landscape Benchmarks for Real-World Machine Learning Applications},
+  author    = {Didi, Kieran and Alamdari, Sarah and Lu, Alex Xijie and Wittmann, Bruce James and Johnston, Kadina E and Amini, Ava P and Madani, Ali and Czeneszew, Maya and Dallago, Christian and Yang, Kevin K},
+  booktitle = {Proceedings of the 43rd International Conference on Machine Learning},
+  pages     = {24724--24777},
+  year      = {2026},
+  volume    = {306},
+  series    = {Proceedings of Machine Learning Research},
+  publisher = {PMLR},
+  url       = {https://proceedings.mlr.press/v306/didi26a.html}
+}
+```
+
+The underlying data keeps its upstream license, and its study should be cited alongside FLIP2:
+
+| Dataset | Upstream data | License | Study |
+| --- | --- | --- | --- |
+| `trpb` | [CaltechDATA](https://doi.org/10.22002/h5rah-5z170) | CC0 1.0 | Johnston KE, Almhjell PJ, Watkins-Dulaney EJ, Liu G, Porter NJ, Yang J, Arnold FH. A combinatorially complete epistatic fitness landscape in an enzyme active site. *PNAS* 121(32):e2400439121 (2024). [doi:10.1073/pnas.2400439121](https://doi.org/10.1073/pnas.2400439121) |
+| `nucb` | [google-deepmind/nuclease_design](https://github.com/google-deepmind/nuclease_design) | CC-BY 4.0 (code: Apache 2.0) | Thomas N, Belanger D, Xu C, Lee H, Hirano K, Iwai K, Polic V, Nyberg KD, Hoff KG, Frenz L, Emrich CA, Kim JW, Chavarha M, Ramanan A, Agresti JJ, Colwell LJ. Engineering highly active nuclease enzymes with machine learning and high-throughput screening. *Cell Systems* 16(3):101236 (2025). [doi:10.1016/j.cels.2025.101236](https://doi.org/10.1016/j.cels.2025.101236) |

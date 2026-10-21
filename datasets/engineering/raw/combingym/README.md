@@ -62,13 +62,13 @@ Both the compiled FASTAs and their intermediates are **gitignored**.
 
 ## Raw Contents
 
-| Protein | Property | WT length | DMS sites | Variant space | Measured | Reference |
-| --- | --- | --- | --- | --- | --- | --- |
-| `GB1` | Binding | 56 | 4 | 160 000 | 149 361 (93.4 %) | Wu et al. 2016, *eLife* 5:e16965 |
-| `CreiLOV` | Fluorescence | 119 | 15 | 184 320 | 165 428 (89.8 %) | Chen et al. 2023, *ACS Synth. Biol.* 12(5):1461 |
-| `CR9114` | Binding | 121 | 16 | 65 536 | 65 535 (100 %) | Phillips et al. 2021, *eLife* 10:e71393 |
-| `mTagBFP2` | Fluorescence | 233 | 13 | 8 192 | 8 192 (100 %) | Poelwijk et al. 2019, *Nat. Commun.* 10:4213 |
-| `SaCas9` | Enzymatic activity | 1053 | 8 | 1 296 | 1 296 (100 %) | Thean et al. 2022, *Nat. Commun.* 13:2219 |
+| Protein | Property | WT length | DMS sites | Variant space | Measured | Reference | License |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `GB1` | Binding | 56 | 4 | 160 000 | 149 361 (93.4 %) | [Wu et al. 2016, *eLife* 5:e16965](https://doi.org/10.7554/eLife.16965) | CC-BY 4.0 |
+| `CreiLOV` | Fluorescence | 119 | 15 | 184 320 | 165 428 (89.8 %) | [Chen et al. 2023, *ACS Synth. Biol.* 12(5):1461](https://doi.org/10.1021/acssynbio.2c00662) | **CC-BY-NC-ND 4.0** |
+| `CR9114` | Binding | 121 | 16 | 65 536 | 65 535 (100 %) | [Phillips et al. 2021, *eLife* 10:e71393](https://doi.org/10.7554/eLife.71393) | MIT |
+| `mTagBFP2` | Fluorescence | 233 | 13 | 8 192 | 8 192 (100 %) | [Poelwijk et al. 2019, *Nat. Commun.* 10:4213](https://doi.org/10.1038/s41467-019-12130-8) | CC-BY 4.0 |
+| `SaCas9` | Enzymatic activity | 1053 | 8 | 1 296 | 1 296 (100 %) | [Thean et al. 2022, *Nat. Commun.* 13:2219](https://doi.org/10.1038/s41467-022-29874-5) | CC-BY 4.0 |
 
 The exact reference string CombinGym ships is in `metadata.json` under `browse_row.dmsRef`.
 
@@ -146,3 +146,30 @@ says `48841` and `0.745255`.
 (train / test. `RhlA` has only three splits, having no variants beyond triples.)
 
 All splits can be derived from `n_mut`.
+
+## Citation and License
+
+CombinGym itself is released under the [MIT license](https://github.com/sitonglab/CombinGym/blob/main/LICENSE).
+Cite the preprint:
+
+> Chen Y, Fu L, Lu X, Li W, Gao Y, Wang Y, Ruan Z, Si T. CombinGym: a benchmark platform for machine
+> learning-assisted design of combinatorial protein variants. *bioRxiv* (2026).
+> [doi:10.64898/2026.03.24.714074](https://doi.org/10.64898/2026.03.24.714074)
+
+```bibtex
+@article{chen2026combingym,
+  title   = {CombinGym: a benchmark platform for machine learning-assisted design of combinatorial protein variants},
+  author  = {Chen, Yongcan and Fu, Lihao and Lu, Xuchao and Li, Wenzhuo and Gao, Yuan and Wang, Yibo and Ruan, Zhicheng and Si, Tong},
+  journal = {bioRxiv},
+  year    = {2026},
+  doi     = {10.64898/2026.03.24.714074}
+}
+```
+
+The landscapes were measured in the studies listed under [Raw Contents](#raw-contents), which should be
+cited alongside CombinGym, and keep those studies' licenses. Most are published as supplementary data
+under the article's license. CR9114's comes from the authors'
+[bnab-landscapes](https://github.com/klawrence26/bnab-landscapes) repository, which is MIT-licensed.
+
+**CreiLOV is CC-BY-NC-ND 4.0** (© 2023 American Chemical Society, open since April 2024): non-commercial
+use only, and adapted versions such as the compiled FASTA may not be shared.
