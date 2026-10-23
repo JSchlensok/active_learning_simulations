@@ -288,14 +288,18 @@ class ActiveLearningSimulator:
             al_simulation_config=al_simulation_config,
             simulation_result=result)
 
-    def simulate(self, embedder_name: str, model_type: ActiveLearningModelType,
-                 n_rounds: int,
-                 show_progress: bool = True) -> ActiveLearningMultipleSimulationResult:
+    def simulate(
+        self,
+        embedder_name: str,
+        model_type: ActiveLearningModelType,
+        n_replicates: int,
+        show_progress: bool = True,
+    ) -> ActiveLearningMultipleSimulationResult:
         simulation_results = []
-        for iteration_idx in range(n_rounds):
+        for replicate_idx in range(n_replicates):
             if show_progress:
-                print(f"Running simulation round {iteration_idx + 1}/{n_rounds}...")
-            seed = self.base_config.settings.first_seed + iteration_idx
+                print(f"Running replicate {replicate_idx + 1}/{n_replicates}...")
+            seed = self.base_config.settings.first_seed + replicate_idx
             single_simulation_result = self._run_simulation(model_type=model_type,
                                                             embedder_name=embedder_name,
                                                             seed=seed,
