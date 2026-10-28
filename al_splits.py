@@ -34,7 +34,6 @@ from __future__ import annotations
 import random
 from abc import abstractmethod
 from collections import Counter
-from datetime import UTC, date, datetime
 from enum import Enum, auto
 from typing import (
     Annotated,
@@ -52,10 +51,13 @@ from pydantic import BaseModel, Field, model_validator
 from biotrainer_core.data_classes import SequenceData
 
 
-def date_seed(day: date | None = None) -> int:
-    """`day` (default: today) as a zero-padded DDMM integer: 15 Oct -> 1510, 5 Mar -> 503."""
-    today = datetime.now(UTC).astimezone().date()  # in the local timezone
-    return int((day or today).strftime("%d%m"))
+DEFAULT_SEED = 43
+"""Default seed, deliberately not biotrainer's 42 so an explicit seed stays recognisable.
+
+A constant rather than a derived value: CampaignSettings.fingerprint() hashes the seed
+into result file names, so anything date-derived would silently invalidate every
+resumable result once a day.
+"""
 
 
 class ExtrapolationAxis(str, Enum):
@@ -473,7 +475,7 @@ class RandomSample(SequenceSelector):
     kind: Literal["random_sample"] = "random_sample"
     n: Optional[int] = Field(default=None, ge=1)
     fraction: Optional[float] = Field(default=None, gt=0.0, le=1.0)
-    seed: int = Field(default_factory=date_seed)
+    seed: int = Field(default=DEFAULT_SEED)
 
     @model_validator(mode="after")
     def _check_size(self) -> RandomSample:
@@ -644,7 +646,7 @@ class PositionSplit(SplitStrategy):
         description="Share of mutated positions to hold out",
     )
     seed: int = Field(
-        default_factory=date_seed, description="Seed for choosing held-out positions"
+        default=DEFAULT_SEED, description="Seed for choosing held-out positions"
     )
 
     @model_validator(mode="after")
@@ -721,7 +723,7 @@ class MutationSplit(SplitStrategy):
         description="Share of distinct substitutions to hold out",
     )
     seed: int = Field(
-        default_factory=date_seed,
+        default=DEFAULT_SEED,
         description="Seed for choosing held-out substitutions",
     )
 
@@ -919,7 +921,7 @@ class PoolSubsample(BaseModel):
 
     n: Optional[int] = Field(default=None, ge=2)
     fraction: Optional[float] = Field(default=None, gt=0.0, le=1.0)
-    seed: int = Field(default_factory=date_seed)
+    seed: int = Field(default=DEFAULT_SEED)
 
     @model_validator(mode="after")
     def _check_size(self) -> PoolSubsample:
@@ -964,7 +966,7 @@ class ALSimulatorSplitDefinition(BaseModel):
         description="Cap the starting set, moving the surplus into the withheld half",
     )
     train_sample_seed: int = Field(
-        default_factory=date_seed, description="Seed for capping the starting set"
+        default=DEFAULT_SEED, description="Seed for capping the starting set"
     )
 
     def is_identity(self) -> bool:
