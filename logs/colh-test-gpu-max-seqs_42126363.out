@@ -1,0 +1,5 @@
+GPU 0: NVIDIA H100 80GB HBM3 (UUID: GPU-d385746e-acfb-80a1-280f-5aeed1f4d8c8)
+RESULT db=pdb max_seqs=300 exit=0 hits=73
+RESULT db=pdb max_seqs=100000 exit=0 hits=77
+RESULT db=uniref50 max_seqs=300 exit=0 hits=300
+RESULT db=uniref50 max_seqs=100000 exit=0 hits=3030

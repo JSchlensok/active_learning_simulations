@@ -1,0 +1,927 @@
+<title>ColH Homolog Survey</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..100,400..700&family=IBM+Plex+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* Layout: one reading column (68ch) inside a 1080px frame; figures take the full frame width, all charts share
+   ColH's residue axis 1-1021 so the domain track reads the same everywhere. */
+:root {
+  --paper: #f3f6f8;
+  --surface: #fbfcfd;
+  --ink: #102030;
+  --ink-2: #44525f;
+  --muted: #6f7b87;
+  --rule: #d6dde3;
+  --grid: #e4e9ed;
+  --axis: #b6c0c9;
+  --accent: #1f3f8a;          /* aniline blue, the collagen stain of Masson's trichrome */
+  --c-pep: #2a78d6;           /* peptidase unit */
+  --c-pkd: #eb6834;           /* PKD domains */
+  --c-cbd: #1baf7a;           /* collagen-binding domain */
+  --c-other: #a3adb6;
+  --c-none: #c9d1d8;          /* signal peptide, propeptide */
+  --unresolved: #e9eef1;
+  --tip-bg: #102030;
+  --tip-ink: #eef3f6;
+  --tip-muted: #a9b6c2;
+
+  --font-display: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-body: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+  --font-data: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --step--1: 0.8125rem;
+  --step-0: 1.0625rem;
+  --step-1: 1.3125rem;
+  --step-2: 1.75rem;
+  --step-3: 2.5rem;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper: #0e141a;
+    --surface: #161d24;
+    --ink: #e6ecf1;
+    --ink-2: #b3bfca;
+    --muted: #84909b;
+    --rule: #28323c;
+    --grid: #222b34;
+    --axis: #3b4753;
+    --accent: #9db8f2;
+    --c-pep: #3987e5;
+    --c-pkd: #d95926;
+    --c-cbd: #199e70;
+    --c-other: #66717c;
+    --c-none: #3e4955;
+    --unresolved: #1c242c;
+    --tip-bg: #e6ecf1;
+    --tip-ink: #0e141a;
+    --tip-muted: #4c5966;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper: #0e141a;
+  --surface: #161d24;
+  --ink: #e6ecf1;
+  --ink-2: #b3bfca;
+  --muted: #84909b;
+  --rule: #28323c;
+  --grid: #222b34;
+  --axis: #3b4753;
+  --accent: #9db8f2;
+  --c-pep: #3987e5;
+  --c-pkd: #d95926;
+  --c-cbd: #199e70;
+  --c-other: #66717c;
+  --c-none: #3e4955;
+  --unresolved: #1c242c;
+  --tip-bg: #e6ecf1;
+  --tip-ink: #0e141a;
+  --tip-muted: #4c5966;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: var(--step-0);
+  line-height: 1.6;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.frame { max-width: 1080px; margin: 0 auto; padding-block: 48px 72px; display: grid; gap: 64px; }
+.prose { max-width: 68ch; }
+.prose > * + * { margin-top: 0.85em; }
+p, ul { margin: 0; }
+ul { padding-left: 1.2em; }
+li + li { margin-top: 0.5em; }
+a { color: var(--accent); text-underline-offset: 2px; }
+a:focus-visible, [tabindex]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+code, .mono { font-family: var(--font-data); font-size: 0.86em; }
+sup { font-size: 0.72em; line-height: 0; }
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-stretch: 82%;
+  font-weight: 650;
+  line-height: 1.12;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  margin: 0;
+}
+h1 { font-size: var(--step-3); }
+h2 { font-size: var(--step-2); }
+h3 { font-size: var(--step-1); }
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+header.masthead { display: grid; gap: 16px; padding-bottom: 32px; border-bottom: 1px solid var(--rule); }
+header .lede { font-size: var(--step-1); line-height: 1.45; color: var(--ink-2); max-width: 60ch; }
+.meta { font-family: var(--font-display); font-size: var(--step--1); color: var(--muted); display: flex; flex-wrap: wrap; gap: 6px 20px; }
+
+section { display: grid; gap: 28px; }
+section > header { display: grid; gap: 10px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.tile {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+.tile .label { font-family: var(--font-display); font-size: var(--step--1); font-weight: 600; color: var(--ink-2); }
+.tile .value { font-family: var(--font-display); font-stretch: 90%; font-size: 2.25rem; font-weight: 650; line-height: 1.1; }
+.tile .hint { font-size: var(--step--1); color: var(--muted); line-height: 1.4; }
+
+figure { margin: 0; display: grid; gap: 12px; }
+figcaption { display: grid; gap: 4px; max-width: 76ch; }
+figcaption .title { font-family: var(--font-display); font-weight: 650; font-size: var(--step-0); }
+figcaption .desc { font-size: var(--step--1); color: var(--ink-2); line-height: 1.5; }
+.chart {
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 14px 14px 10px;
+  position: relative;
+}
+.chart svg, .chart canvas { display: block; width: 100%; }
+.chart text { font-family: var(--font-display); font-size: 11.5px; fill: var(--ink-2); }
+.chart text.axis { fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chart text.strong { fill: var(--ink); font-weight: 600; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--font-display); font-size: var(--step--1); color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 12px; height: 12px; border-radius: 3px; display: inline-block; }
+
+.note {
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding-block: 12px;
+  font-size: var(--step--1);
+  color: var(--ink-2);
+  max-width: 76ch;
+}
+.note strong { font-family: var(--font-display); color: var(--ink); }
+
+/* horizontal bar lists */
+.bars { display: grid; gap: 6px; }
+.bar-row { display: grid; grid-template-columns: minmax(150px, 34%) 1fr; gap: 4px 14px; align-items: center; }
+.bar-row .name { font-family: var(--font-display); font-size: var(--step--1); color: var(--ink-2); line-height: 1.25; }
+.bar-row .track { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.bar-row .bar { height: 14px; border-radius: 0 4px 4px 0; min-width: 2px; flex: none; }
+.bar-row .val { font-family: var(--font-display); font-size: var(--step--1); color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.bar-row:hover .bar, .bar-row:focus-within .bar { filter: brightness(1.12); }
+.pair { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 28px; }
+.pair h3 { font-size: var(--step-0); margin-bottom: 12px; }
+.pair .bar-row { grid-template-columns: minmax(130px, 46%) 1fr; }
+@media (max-width: 520px) {
+  .bar-row, .pair .bar-row { grid-template-columns: 1fr; }
+}
+
+/* tables */
+.table-wrap { overflow: auto; max-height: 560px; border: 1px solid var(--rule); border-radius: 6px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-family: var(--font-display); font-size: var(--step--1); }
+th, td { text-align: left; padding: 7px 12px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+th { position: sticky; top: 0; background: var(--surface); color: var(--ink-2); font-weight: 600; box-shadow: inset 0 -1px 0 var(--rule); white-space: nowrap; }
+td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td .mono { font-size: 0.95em; }
+td .sub { display: block; color: var(--muted); }
+td .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; vertical-align: 0; }
+tbody tr:hover { background: var(--paper); }
+details { font-family: var(--font-display); font-size: var(--step--1); }
+details summary { cursor: pointer; color: var(--accent); width: fit-content; }
+details[open] summary { margin-bottom: 10px; }
+
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: 8px 20px; margin: 0; font-size: var(--step--1); }
+dl.facts dt { font-family: var(--font-display); font-weight: 600; color: var(--ink-2); }
+dl.facts dd { margin: 0; }
+@media (max-width: 560px) { dl.facts { grid-template-columns: 1fr; } dl.facts dd { margin-bottom: 8px; } }
+
+#tip {
+  position: fixed;
+  z-index: 20;
+  pointer-events: none;
+  background: var(--tip-bg);
+  color: var(--tip-ink);
+  border-radius: 6px;
+  padding: 9px 11px;
+  font-family: var(--font-display);
+  font-size: 12.5px;
+  line-height: 1.4;
+  max-width: 320px;
+  box-shadow: 0 4px 18px rgb(0 0 0 / 0.18);
+}
+#tip .t { color: var(--tip-muted); margin-bottom: 4px; }
+#tip .r { display: flex; align-items: baseline; gap: 8px; }
+#tip .r b { font-variant-numeric: tabular-nums; font-weight: 650; }
+#tip .k { width: 12px; height: 2px; border-radius: 1px; flex: none; transform: translateY(-3px); }
+footer { font-family: var(--font-display); font-size: var(--step--1); color: var(--muted); border-top: 1px solid var(--rule); padding-top: 18px; }
+@media (prefers-reduced-motion: no-preference) { .bar-row .bar { transition: filter 120ms; } }
+</style>
+
+<div class="frame">
+  <header class="masthead">
+    <div class="eyebrow">Experiment report · 29 October 2026</div>
+    <h1>ColH homolog survey</h1>
+    <p class="lede">Where the class II collagenase ColH of <i>Hathewaya histolytica</i> finds relatives: by sequence
+      among 3.0 billion proteins assembled from public sequencing runs (Logan50), and by structure among the PDB.</p>
+    <div class="meta">
+      <span>Query: UniProt <a href="https://www.uniprot.org/uniprotkb/Q46085/entry">Q46085</a> (1021 aa) and PDB <a href="https://www.rcsb.org/structure/9LRK">9LRK</a></span>
+      <span>Branch: <code>experiment/colh-homology-search</code></span>
+      <span>HMGU cluster, Heinzinger lab tools</span>
+    </div>
+  </header>
+
+  <section id="summary">
+    <div class="tiles">
+      <div class="tile"><span class="label">Logan50 hits</span><span class="value" data-k="logan.counts.hits"></span><span class="hint">E ≤ 10<sup>−3</sup>, assembled from <span data-k="logan.counts.runs"></span> SRA runs</span></div>
+      <div class="tile"><span class="label">Hits on the PKD domains only</span><span class="value" data-k="pkdShare"></span><span class="hint"><span data-k="logan.counts.classes.pkd"></span> hits align to nothing but ColH's PKD domains</span></div>
+      <div class="tile"><span class="label">Hits with the peptidase unit</span><span class="value" data-k="logan.counts.classes.peptidase"></span><span class="hint"><span data-k="logan.counts.full_length"></span> span all six domains; the closest shares <span data-k="bestFullIdentity"></span> identity</span></div>
+      <div class="tile"><span class="label">PDB structure hits</span><span class="value" data-k="foldseek.counts.prob_09"></span><span class="hint">Foldseek probability ≥ 0.9; <span data-k="collagenaseStructures"></span> are collagenases</span></div>
+    </div>
+    <div class="prose">
+      <ul>
+        <li><strong>Most Logan50 hits are not collagenases.</strong> <span data-k="logan.counts.classes.pkd"></span> of <span data-k="logan.counts.hits"></span> hits align only to ColH's two PKD domains, a module common in bacterial surface proteins, and another <span data-k="logan.counts.classes.cbd"></span> add the collagen-binding domain.</li>
+        <li><strong><span data-k="logan.counts.classes.peptidase"></span> hits include part of the peptidase unit, and <span data-k="logan.counts.full_length"></span> span all six mature domains.</strong> The closest full-length relative, <code data-k="bestFullTarget"></code>, shares <span data-k="bestFullIdentity"></span> identity over <span data-k="bestFullCoverage"></span> of ColH. No hit is ColH itself.</li>
+        <li><strong>The full-length relatives are clostridial collagenases.</strong> Their taxonomy against UniRef50 places 42 of 65 in the Bacillota, mostly <i>Clostridium</i>, and their closest UniRef50 entries are <i>Clostridium</i>, <i>Tissierella</i> and <i>Paenibacillus</i> proteins. Many were assembled from genome runs of animals (porpoise, seals, muskox, fish), which carry bacteria from the sample along with the host.</li>
+        <li><strong>The peptidase-unit hits also include <i>Leptospira</i></strong> (25 hits covering the activator and catalytic subdomains), Bacteroidota, Pseudomonadota and Chloroflexota. The PKD-only hits spread across Bacteria and Archaea, so most resolve only above phylum level.</li>
+        <li><strong>In the PDB, 9LRK's closest neighbours are ColH's own crystal structures</strong> (4ARF, 4U6T), the collagenases ColG and ColT of <i>Clostridium</i>, and two <i>Vibrio</i>-type collagenases. The other confident hits are proteins whose PKD-like β-sandwich or α-helical repeat domains resemble single ColH domains.</li>
+        <li><strong>The Logan50 list is capped</strong> at the 10,000 best prefilter candidates, so weaker homologs beyond those are missing (<a href="#methods">Methods</a>).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="query">
+    <header>
+      <div class="eyebrow">Query</div>
+      <h2>ColH and its domains</h2>
+    </header>
+    <div class="prose">
+      <p>ColH is secreted as a 1021-residue precursor. Behind the signal peptide and propeptide lie the
+        collagenase unit (activator domain, zinc-binding catalytic subdomain and helper subdomain), two
+        polycystic-kidney-disease-like domains (PKD1, also called S2a, and PKD2 or S2b) and the collagen-binding
+        domain (S3). This report colours ColH's three functional units the same way throughout.</p>
+      <p>The structure search used <a href="https://www.rcsb.org/structure/9LRK">9LRK</a>, apo wild-type ColH by
+        cryo-EM at 2.2 Å (<a href="https://doi.org/10.1038/s41467-026-71099-3">Nature Communications, 2026</a>).
+        It models residues 45–808; PKD2 and the collagen-binding domain are not resolved.</p>
+    </div>
+    <figure>
+      <div class="legend" data-legend="units"></div>
+      <div class="chart" id="domain-map"></div>
+      <figcaption><span class="desc">Domain boundaries from UniProt Q46085 regions; the helper subdomain (609–721) is
+        drawn up to residue 717, where PKD1 begins. The bracket marks the residues modelled in 9LRK.</span></figcaption>
+    </figure>
+  </section>
+
+  <section id="logan">
+    <header>
+      <div class="eyebrow">Sequence search · MMseqs2 · Logan50</div>
+      <h2>Relatives among 3 billion assembled proteins</h2>
+    </header>
+    <div class="prose">
+      <p>Logan50 holds the complete genes that Prodigal predicts in the Logan v1.0 assemblies of public SRA runs
+        (up to December 2023), clustered at 50% identity and without runs classified as human-associated. Each hit
+        is a cluster representative, so hit counts measure sequence diversity, not abundance. MMseqs2 searched the
+        full ColH precursor on an H100 GPU and kept alignments with E ≤ 10<sup>−3</sup>.</p>
+    </div>
+    <p class="note"><strong>Search cap.</strong> MMseqs2 aligned the 10,000 best prefilter candidates, of which
+      <span data-k="logan.counts.hits"></span> passed E ≤ 10<sup>−3</sup>. The intended cap of 100,000 crashed the GPU prefilter on
+      Logan50 twice, so homologs ranked below the first 10,000 candidates are not in this list. They would be weaker,
+      most likely more PKD and collagen-binding domain proteins.</p>
+
+    <figure>
+      <figcaption>
+        <span class="title">Hits along ColH</span>
+        <span class="desc">Number of hits covering each ColH residue, stacked by the ColH unit a hit spans by at least
+          half. The PKD domains draw most hits; a few hundred cover the peptidase unit.</span>
+      </figcaption>
+      <div class="legend" data-legend="classes"></div>
+      <div class="chart" id="depth-chart"></div>
+      <details>
+        <summary>Show as a table</summary>
+        <div class="table-wrap" style="max-height:none"><table id="depth-table"></table></div>
+      </details>
+    </figure>
+
+    <figure>
+      <figcaption>
+        <span class="title">Domain combinations</span>
+        <span class="desc">ColH domains each hit covers by at least half of their length.</span>
+      </figcaption>
+      <div class="chart"><div class="bars" id="arch-bars"></div></div>
+    </figure>
+
+    <figure>
+      <figcaption>
+        <span class="title">Identity against coverage</span>
+        <span class="desc">Each dot is one Logan50 protein. PKD-only hits typically cover 7–19% of ColH at 31–45%
+          identity; the <span data-k="logan.counts.full_length"></span> full-length relatives sit at 93–100% coverage
+          with 22–58% identity.</span>
+      </figcaption>
+      <div class="legend" data-legend="classes"></div>
+      <div class="chart" id="scatter"></div>
+    </figure>
+
+    <figure>
+      <figcaption>
+        <span class="title">Source runs</span>
+        <span class="desc">Organism that ENA records for the run each hit was assembled from (<span data-k="logan.counts.runs_resolved"></span>
+          of <span data-k="logan.counts.runs"></span> runs have one). Metagenomes name their environment; genome runs
+          name the sequenced organism, which for bacterial genes in an animal genome run is the host. The next figure
+          assigns the genes themselves.</span>
+      </figcaption>
+      <div class="chart">
+        <div class="pair">
+          <div><h3>All <span data-k="logan.counts.hits"></span> hits</h3><div class="bars" id="src-all"></div></div>
+          <div><h3><span data-k="logan.counts.classes.peptidase"></span> hits with the peptidase unit</h3><div class="bars" id="src-pep"></div></div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>
+        <span class="title">Taxonomy of the hits</span>
+        <span class="desc">Lowest common ancestor of each hit's matches in UniRef50 (MMseqs2 approximate 2bLCA);
+          <span data-k="logan.taxonomy.classified"></span> of <span data-k="logan.counts.hits"></span> hits are assigned:
+          <span data-k="superkingdomSummary"></span>. PKD domains occur in Bacteria and Archaea alike, so many PKD-only
+          hits resolve only to cellular organisms.</span>
+      </figcaption>
+      <div class="chart">
+        <div class="pair">
+          <div><h3>All hits by phylum</h3><div class="bars" id="tax-phylum"></div></div>
+          <div><h3>Hits with the peptidase unit by genus</h3><div class="bars" id="tax-genus"></div></div>
+        </div>
+      </div>
+    </figure>
+
+    <figure>
+      <figcaption>
+        <span class="title">Hits with the peptidase unit</span>
+        <span class="desc">All <span data-k="logan.counts.classes.peptidase"></span>, strongest alignment first. Protein IDs
+          are <code>run_contig_gene</code>; runs link to ENA. Taxon is the lowest common ancestor of the UniRef50
+          matches; the closest UniRef50 entry is the single best match. Its identity is to the cluster's representative
+          sequence, so another member of that cluster can be closer.</span>
+      </figcaption>
+      <div class="table-wrap"><table id="pep-table"></table></div>
+    </figure>
+  </section>
+
+  <section id="pdb">
+    <header>
+      <div class="eyebrow">Structure search · Foldseek · PDB</div>
+      <h2>Structural neighbours of 9LRK</h2>
+    </header>
+    <div class="prose">
+      <p>Foldseek compared 9LRK with the PDB as of 1 January 2025 (324,204 cluster representatives, so 9LRK itself
+        is not among them). Of <span data-k="foldseek.counts.hits"></span> hits, <span data-k="foldseek.counts.prob_09"></span>
+        have a homology probability of at least 0.9; the chart and table show those.</p>
+    </div>
+    <figure>
+      <figcaption>
+        <span class="title">Aligned ColH residues per structure</span>
+        <span class="desc">Colour shows the ColH unit a hit spans. Collagenases first, then other proteins, each
+          ordered by where the alignment starts. The shaded ends are not modelled in 9LRK.</span>
+      </figcaption>
+      <div class="legend" data-legend="classes"></div>
+      <div class="chart" id="fs-map"></div>
+    </figure>
+    <figure>
+      <figcaption><span class="title">Confident structure hits</span>
+        <span class="desc">Probability ≥ 0.9, strongest first. Identity is over the aligned residues; the TM-score is
+          normalised by the alignment length.</span></figcaption>
+      <div class="table-wrap"><table id="fs-table"></table></div>
+    </figure>
+  </section>
+
+  <section id="methods">
+    <header>
+      <div class="eyebrow">Methods</div>
+      <h2>How the searches ran</h2>
+    </header>
+    <dl class="facts">
+      <dt>Query</dt>
+      <dd>UniProt Q46085 (entry version 143, sequence version 1), full precursor; PDB 9LRK (model revision 1.1), chain A.</dd>
+      <dt>Sequence search</dt>
+      <dd>MMseqs2 18-8cc5c, <code>easy-search --gpu 1 --max-seqs 10000</code>, other parameters default (E ≤ 10<sup>−3</sup>), on one
+        H100 via the lab's <code>mmseqs-logan50</code> wrapper, which copies the 400 GB database to RAM first. Job
+        42126564, 1 h 08 min, of which 52 min went to reading hit headers from lustre.</dd>
+      <dt>The cap of 100,000</dt>
+      <dd>Jobs 42125387 and 42126564 (on two different nodes) both died in the GPU prefilter with
+        <code>--max-seqs 100000</code> (“CUDA error: an illegal memory access / illegal instruction”). The same setting
+        ran fine against PDB seqres and UniRef50 (test job 42126363), and the lab's Logan50 test passed with the default
+        of 300, so the failure is specific to Logan50 with a large cap.</dd>
+      <dt>Structure search</dt>
+      <dd>Foldseek 10-941cd33, <code>easy-search</code> with defaults (3Di + amino acids) on CPU, which unlike GPU returns
+        taxonomy; PDB snapshot 2025-01-01. Job 42125259, 27 s. Its prefilter filled its default cap of 1000
+        candidates; the confident hits rank well inside it.</dd>
+      <dt>Run metadata</dt>
+      <dd>ENA portal API, 29 October 2026: organism, library source and study for each SRA run named in a hit header.</dd>
+      <dt>Taxonomy</dt>
+      <dd>MMseqs2 <code>easy-taxonomy</code> (approximate 2bLCA, taxonomy defaults otherwise) of the 7,879 hit sequences
+        against UniRef50 2026_03 with its NCBI taxonomy, on CPU with the precomputed index. Job 42130846, 4.7 min. It
+        sets <code>--max-rejected 2147483647</code>: with the default of 5, the second alignment pass stops after five
+        consecutive misses, often before it reaches the top hit, and left 1,630 hits unassigned (job 42130720)
+        although a plain search finds strong UniRef50 matches for them (job 42130807). The closest UniRef50 entry and
+        its identity come from a separate <code>easy-search</code> with full alignments (job 42130957), because the
+        taxonomy workflow aligns in score-only mode and only estimates identities.</dd>
+      <dt>Domain assignment</dt>
+      <dd>A hit covers a ColH domain when its alignment spans at least half of it. Classes: peptidase unit if it
+        covers the activator, catalytic or helper subdomain; otherwise collagen-binding domain; otherwise PKD domains.</dd>
+    </dl>
+    <div class="prose">
+      <h3>Caveats</h3>
+      <ul>
+        <li>The Logan50 list holds the 10,000 best prefilter candidates only (see above).</li>
+        <li>Logan50 clusters proteins at 50% identity, and the run named in a hit is the cluster representative's.</li>
+        <li>A run's organism describes the sample, not necessarily the gene: bacterial genes appear in animal and plant genome runs.</li>
+        <li>Lowest-common-ancestor assignments are conservative: a hit whose UniRef50 matches span phyla is assigned above them, even when its single closest match is a named genus.</li>
+        <li>The GPU prefilter of MMseqs2 differs from the CPU one and finds somewhat more hits.</li>
+        <li>9LRK lacks PKD2 and the collagen-binding domain, so the structure search cannot find relatives of those two.</li>
+      </ul>
+    </div>
+  </section>
+
+  <footer>
+    Built by <code>scripts/build_report.py</code> from <code>outputs/</code> on branch
+    <code>experiment/colh-homology-search</code>; commands and job scripts are in the branch README and <code>scripts/</code>.
+  </footer>
+</div>
+<div id="tip" hidden></div>
+
+<script id="report-data" type="application/json">__REPORT_DATA__</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById("report-data").textContent);
+  const L = D.logan, F = D.foldseek, Q = D.query;
+  const NS = "http://www.w3.org/2000/svg";
+  const nf = new Intl.NumberFormat("en-US");
+  const CLASSES = ["peptidase", "cbd", "pkd", "other"];
+  const CLASS_NAME = { peptidase: "Peptidase unit", cbd: "Collagen-binding domain", pkd: "PKD domains only", other: "Under half of any domain" };
+  const CLASS_VAR = { peptidase: "--c-pep", cbd: "--c-cbd", pkd: "--c-pkd", other: "--c-other" };
+  const DOMAIN_VAR = { signal: "--c-none", propeptide: "--c-none", activator: "--c-pep", catalytic: "--c-pep", helper: "--c-pep", pkd1: "--c-pkd", pkd2: "--c-pkd", cbd: "--c-cbd" };
+  const DOMAIN_LABEL = { activator: "Activator", catalytic: "Catalytic", helper: "Helper", pkd1: "PKD1", pkd2: "PKD2", cbd: "CBD" };
+
+  const pct = (v, d = 0) => (v * 100).toFixed(d) + "%";
+  const fmtE = (e) => {
+    const span = document.createElement("span");
+    if (e === 0) { span.textContent = "0"; return span; }
+    const [m, x] = e.toExponential(1).split("e");
+    span.textContent = `${m} × 10`;
+    span.appendChild(document.createElement("sup")).textContent = String(Number(x)).replace("-", "−");
+    return span;
+  };
+  const cssVar = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const svgEl = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) if (attrs[k] != null) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const html =(tag, cls, parent, text) => {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text !== undefined) e.textContent = text;
+    if (parent) parent.appendChild(e);
+    return e;
+  };
+  const domainAt = (r) => Q.domains.find((d) => r >= d.start && r <= d.end);
+  const archLabel = (arch) => (arch.split(" + ").length === 6 ? "All six domains" : arch);
+
+  // bound numbers
+  const full = L.counts.best_full;
+  const derived = {
+    pkdShare: pct(L.counts.classes.pkd / L.counts.hits),
+    bestFullIdentity: pct(full.fident),
+    bestFullCoverage: pct(full.qcov, 1),
+    bestFullTarget: full.target,
+    collagenaseStructures: nf.format((F.counts.groups.m9b || 0) + (F.counts.groups.m9a || 0)),
+    superkingdomSummary: (() => {
+      const s = L.taxonomy.superkingdoms;
+      const named = ["Bacteria", "Archaea", "Eukaryota", "Viruses"].filter((k) => s[k]).map((k) => `${nf.format(s[k])} to ${k}`);
+      const above = s["Above superkingdom level"];
+      return named.join(", ") + (above ? ` and ${nf.format(above)} only to cellular organisms or root` : "");
+    })(),
+  };
+  document.querySelectorAll("[data-k]").forEach((node) => {
+    const key = node.dataset.k;
+    let v = derived[key];
+    if (v === undefined) v = key.split(".").reduce((o, k) => (o == null ? o : o[k]), D);
+    node.textContent = typeof v === "number" ? nf.format(v) : v;
+  });
+
+  // legends
+  const legendItems = {
+    units: [["--c-pep", "Peptidase unit"], ["--c-pkd", "PKD domains"], ["--c-cbd", "Collagen-binding domain"], ["--c-none", "Signal peptide and propeptide"]],
+    classes: CLASSES.map((c) => [CLASS_VAR[c], CLASS_NAME[c]]),
+  };
+  document.querySelectorAll("[data-legend]").forEach((box) => {
+    for (const [v, name] of legendItems[box.dataset.legend]) {
+      const s = html("span", null, box);
+      html("i", null, s).style.background = `var(${v})`;
+      s.append(name);
+    }
+  });
+
+  // tooltip
+  const tip = document.getElementById("tip");
+  function showTip(evt, title, rows) {
+    tip.replaceChildren();
+    if (title) html("div", "t", tip, title);
+    for (const [value, label, colorVar] of rows) {
+      const r = html("div", "r", tip);
+      if (colorVar) html("span", "k", r).style.background = `var(${colorVar})`;
+      html("b", null, r).append(value);
+      if (label) r.append(label);
+    }
+    tip.hidden = false;
+    const pad = 14, w = tip.offsetWidth, h = tip.offsetHeight;
+    let x = evt.clientX + pad, y = evt.clientY + pad;
+    if (x + w > innerWidth - 8) x = evt.clientX - w - pad;
+    if (y + h > innerHeight - 8) y = evt.clientY - h - pad;
+    tip.style.left = Math.max(8, x) + "px";
+    tip.style.top = Math.max(8, y) + "px";
+  }
+  const hideTip = () => { tip.hidden = true; };
+  const tipAtElement = (node) => {
+    const b = node.getBoundingClientRect();
+    return { clientX: b.left + b.width / 2, clientY: b.top };
+  };
+
+  const niceMax = (v) => {
+    const p = Math.pow(10, Math.floor(Math.log10(v)));
+    for (const m of [1, 1.2, 1.6, 2, 2.4, 3, 4, 6, 8, 10]) if (m * p >= v) return m * p;
+  };
+
+  // shared residue track: domains as blocks with 2px surface gaps, labels beneath when they fit
+  function domainTrack(svg, x, y, h, withLabels) {
+    for (const d of Q.domains) {
+      const x0 = x(d.start - 1) + 1, x1 = x(d.end) - 1;
+      const rect = svgEl("rect", { x: x0, y, width: Math.max(1, x1 - x0), height: h, rx: 2, fill: `var(${DOMAIN_VAR[d.key]})` }, svg);
+      const t = svgEl("title", {}, rect);
+      t.textContent = `${d.name}, residues ${d.start}–${d.end}`;
+      const label = DOMAIN_LABEL[d.key];
+      if (withLabels && label && x1 - x0 > label.length * 6.6) {
+        svgEl("text", { x: (x0 + x1) / 2, y: y + h + 14, "text-anchor": "middle" }, svg).textContent = label;
+      }
+    }
+  }
+  function residueAxis(svg, x, y) {
+    for (let r = 0; r <= 1000; r += 100) {
+      const v = Math.max(r, 1);
+      svgEl("text", { x: x(v), y, "text-anchor": r === 0 ? "start" : "middle", class: "axis" }, svg).textContent = v;
+    }
+  }
+  const linearX = (left, width) => (r) => left + (r / Q.length) * width;
+
+  function renderDomainMap(box) {
+    const W = box.clientWidth - 28, H = 96, left = 8, width = W - 16;
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "ColH domain map" });
+    const x = linearX(left, width);
+    domainTrack(svg, x, 10, 22, true);
+    const [a, b] = Q.resolved;
+    const by = 58;
+    svgEl("path", { d: `M${x(a - 1)},${by - 6} V${by} H${x(b)} V${by - 6}`, fill: "none", stroke: "var(--ink-2)", "stroke-width": 1.5 }, svg);
+    svgEl("text", { x: (x(a - 1) + x(b)) / 2, y: by + 15, "text-anchor": "middle", class: "strong" }, svg).textContent = `9LRK model, residues ${a}–${b}`;
+    residueAxis(svg, x, H - 4);
+    box.replaceChildren(svg);
+  }
+
+  function renderDepth(box) {
+    const W = box.clientWidth - 28, H = W < 520 ? 300 : 340;
+    const m = { l: 44, r: 12, t: 22, b: 64 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b;
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Logan50 hits per ColH residue" });
+    const x = linearX(m.l, pw);
+    const totals = new Array(Q.length).fill(0);
+    for (const c of CLASSES) (L.depth[c] || []).forEach((v, i) => (totals[i] += v));
+    const ymax = niceMax(Math.max(...totals));
+    const y = (v) => m.t + ph - (v / ymax) * ph;
+    for (let k = 0; k <= 4; k++) {
+      const v = (ymax / 4) * k;
+      svgEl("line", { x1: m.l, x2: m.l + pw, y1: y(v), y2: y(v), stroke: k ? "var(--grid)" : "var(--axis)", "stroke-width": 1 }, svg);
+      svgEl("text", { x: m.l - 6, y: y(v) + 4, "text-anchor": "end", class: "axis" }, svg).textContent = v >= 1000 ? v / 1000 + "K" : v;
+    }
+    const base = new Array(Q.length).fill(0);
+    // stack the small classes first so the PKD layer forms the top edge
+    for (const c of ["other", "peptidase", "cbd", "pkd"]) {
+      const d = L.depth[c];
+      if (!d) continue;
+      const top = d.map((v, i) => base[i] + v);
+      let path = "";
+      top.forEach((v, i) => (path += `${i ? "L" : "M"}${x(i + 0.5).toFixed(1)},${y(v).toFixed(1)}`));
+      for (let i = Q.length - 1; i >= 0; i--) path += `L${x(i + 0.5).toFixed(1)},${y(base[i]).toFixed(1)}`;
+      svgEl("path", { d: path + "Z", fill: `var(${CLASS_VAR[c]})`, "fill-opacity": 0.32 }, svg);
+      let line = "";
+      top.forEach((v, i) => (line += `${i ? "L" : "M"}${x(i + 0.5).toFixed(1)},${y(v).toFixed(1)}`));
+      svgEl("path", { d: line, fill: "none", stroke: `var(${CLASS_VAR[c]})`, "stroke-width": 2, "stroke-linejoin": "round" }, svg);
+      top.forEach((v, i) => (base[i] = v));
+    }
+    // peak label
+    const peak = totals.indexOf(Math.max(...totals));
+    const px = x(peak + 0.5);
+    svgEl("text", { x: px - 8, y: y(totals[peak]) - 8, "text-anchor": "end", class: "strong" }, svg).textContent = `${nf.format(totals[peak])} hits at residue ${peak + 1}, ${domainAt(peak + 1).name}`;
+    domainTrack(svg, x, m.t + ph + 8, 12, true);
+    residueAxis(svg, x, H - 4);
+
+    const cross = svgEl("line", { y1: m.t, y2: m.t + ph, stroke: "var(--ink)", "stroke-width": 1, visibility: "hidden" }, svg);
+    const hit = svgEl("rect", { x: m.l, y: m.t, width: pw, height: ph, fill: "transparent" }, svg);
+    hit.addEventListener("pointermove", (evt) => {
+      const r = svg.getBoundingClientRect();
+      const sx = ((evt.clientX - r.left) / r.width) * W;
+      const res = Math.min(Q.length, Math.max(1, Math.round(((sx - m.l) / pw) * Q.length + 0.5)));
+      const cx = x(res - 0.5);
+      cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.setAttribute("visibility", "visible");
+      const dom = domainAt(res);
+      const rows = [[nf.format(totals[res - 1]), " hits in total"]];
+      for (const c of CLASSES) if (L.depth[c]) rows.push([nf.format(L.depth[c][res - 1]), " " + CLASS_NAME[c], CLASS_VAR[c]]);
+      showTip(evt, `Residue ${res}${dom ? " · " + dom.name : " · linker"}`, rows);
+    });
+    hit.addEventListener("pointerleave", () => { cross.setAttribute("visibility", "hidden"); hideTip(); });
+    box.replaceChildren(svg);
+  }
+
+  function depthTable() {
+    const t = document.getElementById("depth-table");
+    const head = html("tr", null, html("thead", null, t));
+    for (const h of ["Domain", "Residues", ...CLASSES.map((c) => CLASS_NAME[c])]) html("th", h === "Domain" || h === "Residues" ? null : "num", head, h);
+    const body = html("tbody", null, t);
+    for (const d of Q.domains) {
+      const tr = html("tr", null, body);
+      html("td", null, tr, d.name);
+      html("td", "num", tr, `${d.start}–${d.end}`);
+      for (const c of CLASSES) {
+        const arr = L.depth[c] || [];
+        const slice = arr.slice(d.start - 1, d.end);
+        const mean = slice.length ? slice.reduce((a, b) => a + b, 0) / slice.length : 0;
+        html("td", "num", tr, nf.format(Math.round(mean)));
+      }
+    }
+    const cap = html("caption", null, t, "Mean number of hits per residue in each domain");
+    cap.style.cssText = "caption-side: bottom; text-align: left; padding: 8px 12px; color: var(--muted)";
+  }
+
+  function barList(boxId, items, colorFor, labelFor) {
+    const box = document.getElementById(boxId);
+    const max = Math.max(...items.map((i) => i.n));
+    for (const item of items) {
+      const row = html("div", "bar-row", box);
+      row.tabIndex = 0;
+      html("div", "name", row, labelFor(item));
+      const track = html("div", "track", row);
+      const bar = html("div", "bar", track);
+      bar.style.width = `calc(${(item.n / max) * 100}% - ${(item.n / max) * 64}px)`;
+      bar.style.background = `var(${colorFor(item)})`;
+      html("span", "val", track, nf.format(item.n));
+    }
+  }
+
+  function renderScatter(box) {
+    const W = box.clientWidth - 28, H = W < 520 ? 320 : 420;
+    const m = { l: 44, r: 14, t: 14, b: 40 };
+    const pw = W - m.l - m.r, ph = H - m.t - m.b;
+    const dpr = window.devicePixelRatio || 1;
+    const canvas = document.createElement("canvas");
+    canvas.width = W * dpr; canvas.height = H * dpr; canvas.style.height = H + "px";
+    canvas.setAttribute("role", "img");
+    canvas.setAttribute("aria-label", "Identity against ColH coverage for each Logan50 hit");
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+    const yMin = 0.2;
+    const x = (v) => m.l + v * pw, y = (v) => m.t + ph - ((v - yMin) / (1 - yMin)) * ph;
+    ctx.font = "11.5px " + cssVar("--font-display");
+    ctx.lineWidth = 1;
+    for (let k = 0; k <= 5; k++) {
+      const gx = x(k / 5);
+      ctx.strokeStyle = cssVar(k ? "--grid" : "--axis");
+      ctx.beginPath(); ctx.moveTo(gx + 0.5, m.t); ctx.lineTo(gx + 0.5, m.t + ph); ctx.stroke();
+      ctx.fillStyle = cssVar("--muted"); ctx.textAlign = "center";
+      ctx.fillText(k * 20 + "%", gx, m.t + ph + 16);
+    }
+    for (let v = 0.2; v <= 1.0001; v += 0.2) {
+      const gy = y(v);
+      ctx.strokeStyle = cssVar(v < 0.21 ? "--axis" : "--grid");
+      ctx.beginPath(); ctx.moveTo(m.l, gy + 0.5); ctx.lineTo(m.l + pw, gy + 0.5); ctx.stroke();
+      ctx.fillStyle = cssVar("--muted"); ctx.textAlign = "right";
+      ctx.fillText(Math.round(v * 100) + "%", m.l - 6, gy + 4);
+    }
+    ctx.fillStyle = cssVar("--ink-2"); ctx.textAlign = "center";
+    ctx.fillText("Share of ColH covered by the alignment", m.l + pw / 2, H - 4);
+    ctx.save(); ctx.translate(11, m.t + ph / 2); ctx.rotate(-Math.PI / 2); ctx.fillText("Identity", 0, 0); ctx.restore();
+
+    const surface = cssVar("--surface");
+    const order = ["pkd", "other", "cbd", "peptidase"];
+    const pts = L.points;
+    for (const c of order) {
+      ctx.fillStyle = cssVar(CLASS_VAR[c]);
+      ctx.globalAlpha = c === "peptidase" ? 0.9 : 0.55;
+      for (const p of pts) {
+        if (p[2] !== c) continue;
+        ctx.beginPath(); ctx.arc(x(p[1]), y(p[0]), 2.6, 0, 2 * Math.PI); ctx.fill();
+      }
+    }
+    ctx.globalAlpha = 1;
+    // best full-length relative
+    const best = pts.find((p) => p[3] === full.target);
+    if (best) {
+      const bx = x(best[1]), by = y(best[0]);
+      ctx.strokeStyle = cssVar("--ink"); ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(bx, by, 6, 0, 2 * Math.PI); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(bx - 7, by - 4); ctx.lineTo(bx - 28, by - 22); ctx.stroke();
+      ctx.fillStyle = cssVar("--ink"); ctx.textAlign = "right";
+      ctx.font = "600 11.5px " + cssVar("--font-display");
+      ctx.fillText(`Closest full-length relative, ${pct(best[0])} identity`, bx - 31, by - 25);
+    }
+
+    // nearest-point hover over a coarse grid
+    const cell = 16, grid = new Map();
+    pts.forEach((p, i) => {
+      const k = Math.floor(x(p[1]) / cell) + "," + Math.floor(y(p[0]) / cell);
+      if (!grid.has(k)) grid.set(k, []);
+      grid.get(k).push(i);
+    });
+    const overlay = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, height: H });
+    overlay.style.cssText = "position:absolute; left:14px; top:14px; width:calc(100% - 28px); pointer-events:none";
+    const ring = svgEl("circle", { r: 5, fill: "none", stroke: surface, "stroke-width": 2, visibility: "hidden" }, overlay);
+    const dot = svgEl("circle", { r: 4, visibility: "hidden" }, overlay);
+    canvas.addEventListener("pointermove", (evt) => {
+      const r = canvas.getBoundingClientRect();
+      const sx = ((evt.clientX - r.left) / r.width) * W, sy = ((evt.clientY - r.top) / r.height) * H;
+      const gx = Math.floor(sx / cell), gy = Math.floor(sy / cell);
+      let bestI = -1, bestD = 14 * 14;
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+        for (const i of grid.get(gx + dx + "," + (gy + dy)) || []) {
+          const d2 = (x(pts[i][1]) - sx) ** 2 + (y(pts[i][0]) - sy) ** 2;
+          if (d2 < bestD) { bestD = d2; bestI = i; }
+        }
+      }
+      if (bestI < 0) { ring.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); hideTip(); return; }
+      const p = pts[bestI];
+      for (const c of [ring, dot]) { c.setAttribute("cx", x(p[1])); c.setAttribute("cy", y(p[0])); c.setAttribute("visibility", "visible"); }
+      dot.setAttribute("fill", `var(${CLASS_VAR[p[2]]})`);
+      showTip(evt, p[3], [
+        [pct(p[0], 1), " identity", CLASS_VAR[p[2]]],
+        [pct(p[1], 1), " of ColH covered"],
+        [nf.format(p[4]) + " aa", " protein length"],
+        [fmtE(p[5]), " E-value"],
+        [L.taxa[p[7]], " (taxon)"],
+        [L.sources[p[6]], " (run organism)"],
+      ]);
+    });
+    canvas.addEventListener("pointerleave", () => { ring.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); hideTip(); });
+    box.replaceChildren(canvas, overlay);
+  }
+
+  function pepTable() {
+    const t = document.getElementById("pep-table");
+    const head = html("tr", null, html("thead", null, t));
+    const cols = [["Protein"], ["Taxon"], ["Closest UniRef50 entry"], ["Run organism"], ["Length", "num"], ["Identity", "num"], ["ColH residues", "num"], ["Domains covered"], ["E-value", "num"]];
+    for (const [h, c] of cols) html("th", c, head, h);
+    const body = html("tbody", null, t);
+    for (const h of L.peptidase_hits) {
+      const tr = html("tr", null, body);
+      const td = html("td", null, tr);
+      html("span", "mono", td, h.target);
+      const sub = html("span", "sub", td);
+      const a = html("a", null, sub, h.run);
+      a.href = `https://www.ebi.ac.uk/ena/browser/view/${h.run}`;
+      const tax = html("td", null, tr, h.taxon);
+      if (h.tax_rank) html("span", "sub", tax, h.tax_rank);
+      const top = html("td", null, tr, h.top_taxon || "No UniRef50 match");
+      if (h.top_uniref) {
+        const sub2 = html("span", "sub", top);
+        const link = html("a", null, sub2, h.top_uniref);
+        link.href = `https://www.uniprot.org/uniref/${h.top_uniref}`;
+        sub2.append(`, ${pct(h.top_fident, 1)} identity over ${pct(h.top_qcov)} of the hit`);
+      }
+      const org = html("td", null, tr, h.scientific_name || "No organism in ENA");
+      html("span", "sub", org, (h.library_source || "").toLowerCase());
+      html("td", "num", tr, nf.format(h.tlen));
+      html("td", "num", tr, pct(h.fident, 1));
+      html("td", "num", tr, `${h.qstart}–${h.qend}`);
+      html("td", null, tr, archLabel(h.arch));
+      html("td", "num", tr).append(fmtE(h.evalue));
+    }
+  }
+
+  const fsRows = [...F.hits].sort((a, b) => {
+    const ga = a.group === "other" ? 1 : 0, gb = b.group === "other" ? 1 : 0;
+    return ga - gb || a.qs - b.qs || b.bits - a.bits;
+  });
+  function renderFoldseek(box) {
+    const W = box.clientWidth - 28;
+    const rowH = 15, labelW = 62, m = { t: 44, b: 26 };
+    const nColl = fsRows.filter((h) => h.group !== "other").length;
+    const groupGap = 26;
+    const H = m.t + 18 + fsRows.length * rowH + groupGap + m.b;
+    const svg = svgEl("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Aligned ColH residues for each confident Foldseek hit" });
+    const pw = W - labelW - 10;
+    const x = linearX(labelW, pw);
+    const [a, b] = Q.resolved;
+    const bodyTop = m.t - 4, bodyH = H - m.b - bodyTop;
+    svgEl("rect", { x: x(0), y: bodyTop, width: x(a - 1) - x(0), height: bodyH, fill: "var(--unresolved)" }, svg);
+    svgEl("rect", { x: x(b), y: bodyTop, width: x(Q.length) - x(b), height: bodyH, fill: "var(--unresolved)" }, svg);
+    domainTrack(svg, x, 4, 12, true);
+    let yCur = m.t + 14;
+    const heading = (text) => {
+      svgEl("text", { x: 0, y: yCur - 2, class: "strong" }, svg).textContent = text;
+      yCur += 6;
+    };
+    heading(`Collagenases (${nColl})`);
+    fsRows.forEach((h, i) => {
+      if (i === nColl) { yCur += groupGap - 6; heading(`Other proteins (${fsRows.length - nColl})`); }
+      const cy = yCur + rowH / 2;
+      svgEl("text", { x: 0, y: cy + 4, class: h.group === "other" ? "axis" : null }, svg).textContent = `${h.pdb} ${h.chain}`;
+      const g = svgEl("g", { tabindex: 0, role: "button", "aria-label": `${h.pdb} chain ${h.chain}: ${h.title}` }, svg);
+      svgEl("rect", { x: x(h.qs - 1), y: cy - 7, width: Math.max(3, x(h.qe) - x(h.qs - 1)), height: 14, fill: "transparent" }, g);
+      svgEl("rect", { x: x(h.qs - 1), y: cy - 4, width: Math.max(3, x(h.qe) - x(h.qs - 1)), height: 8, rx: 4, fill: `var(${CLASS_VAR[h.cls]})` }, g);
+      const show = (evt) => showTip(evt, `${h.pdb} ${h.chain} · ${h.taxname}`, [
+        [h.title, ""],
+        [`${h.qs}–${h.qe}`, " ColH residues", CLASS_VAR[h.cls]],
+        [h.alntmscore.toFixed(2), " TM-score"],
+        [pct(h.fident), " identity"],
+        [h.prob.toFixed(2), " probability"],
+        [fmtE(h.evalue), " E-value"],
+      ]);
+      g.addEventListener("pointermove", show);
+      g.addEventListener("pointerleave", hideTip);
+      g.addEventListener("focus", () => show(tipAtElement(g)));
+      g.addEventListener("blur", hideTip);
+      yCur += rowH;
+    });
+    residueAxis(svg, x, H - 6);
+    box.replaceChildren(svg);
+  }
+
+  function fsTable() {
+    const t = document.getElementById("fs-table");
+    const head = html("tr", null, html("thead", null, t));
+    const cols = [["Structure"], ["Organism"], ["ColH residues", "num"], ["Domains covered"], ["Identity", "num"], ["TM-score", "num"], ["Probability", "num"], ["E-value", "num"]];
+    for (const [h, c] of cols) html("th", c, head, h);
+    const body = html("tbody", null, t);
+    for (const h of F.hits) {
+      const tr = html("tr", null, body);
+      const td = html("td", null, tr);
+      const dot = html("span", "dot", td);
+      dot.style.background = `var(${CLASS_VAR[h.cls]})`;
+      const a = html("a", "mono", td, `${h.pdb} ${h.chain}`);
+      a.href = `https://www.rcsb.org/structure/${h.pdb}`;
+      html("span", "sub", td, h.title);
+      html("td", null, tr, h.taxname);
+      html("td", "num", tr, `${h.qs}–${h.qe}`);
+      html("td", null, tr, h.arch);
+      html("td", "num", tr, pct(h.fident));
+      html("td", "num", tr, h.alntmscore.toFixed(2));
+      html("td", "num", tr, h.prob.toFixed(2));
+      html("td", "num", tr).append(fmtE(h.evalue));
+    }
+  }
+
+  // static parts
+  depthTable();
+  const archItems = L.archs.slice(0, 12);
+  const archRest = L.archs.slice(12).reduce((s, a) => s + a.n, 0);
+  if (archRest) archItems.push({ arch: `Other combinations (${L.archs.length - 12})`, cls: "other", n: archRest });
+  barList("arch-bars", archItems, (i) => CLASS_VAR[i.cls], (i) => archLabel(i.arch));
+  const sourceLabel = (i) => (i.name === "Other" ? `Other (${nf.format(i.k)} more)` : i.name);
+  barList("src-all", L.sources_all, (i) => (i.name === "Other" ? "--c-other" : "--ink-2"), sourceLabel);
+  barList("src-pep", L.sources_peptidase, (i) => (i.name === "Other" ? "--c-other" : "--c-pep"), sourceLabel);
+  const unresolved = new Set(["Other", "Unclassified", "Above phylum level", "Above genus level"]);
+  barList("tax-phylum", L.taxonomy.phylum_all, (i) => (unresolved.has(i.name) ? "--c-other" : "--ink-2"), sourceLabel);
+  barList("tax-genus", L.taxonomy.genus_peptidase, (i) => (unresolved.has(i.name) ? "--c-other" : "--c-pep"), sourceLabel);
+  document.querySelectorAll(".bar-row").forEach((row) => {
+    const name = row.querySelector(".name").textContent, val = row.querySelector(".val").textContent;
+    row.setAttribute("aria-label", `${name}: ${val}`);
+  });
+  pepTable();
+  fsTable();
+
+  // responsive charts
+  const charts = [["domain-map", renderDomainMap], ["depth-chart", renderDepth], ["scatter", renderScatter], ["fs-map", renderFoldseek]];
+  const renderAll = () => charts.forEach(([id, fn]) => fn(document.getElementById(id)));
+  renderAll();
+  let lastW = 0, frame = 0;
+  new ResizeObserver(() => {
+    const w = document.querySelector(".frame").clientWidth;
+    if (w === lastW) return;
+    lastW = w;
+    cancelAnimationFrame(frame);
+    frame = requestAnimationFrame(renderAll);
+  }).observe(document.querySelector(".frame"));
+  // canvas colours come from the theme tokens: redraw when the theme changes
+  const redrawScatter = () => renderScatter(document.getElementById("scatter"));
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", redrawScatter);
+  new MutationObserver(redrawScatter).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  if (document.fonts) document.fonts.ready.then(redrawScatter);
+})();
+</script>

@@ -1,0 +1,201 @@
+60
+Create directory /localscratch/julius.schlensok/42130807/tmp
+easy-search /localscratch/julius.schlensok/42130807/sample.fasta /lustre/groups/shared/hei/databases/mmseqs2/uniref50/2026_03/uniref50 outputs/taxonomy_uniref50/unclassified_sample_vs_uniref50.tsv /localscratch/julius.schlensok/42130807/tmp --db-load-mode 1 --threads 16 --format-mode 4 --format-output query,target,fident,qcov,evalue,bits,taxid,taxname,taxlineage 
+
+MMseqs Version:                        	8cc5ce367b5638c4306c2d7cfc652dd099a4643f
+Substitution matrix                    	aa:blosum62.out,nucl:nucleotide.out
+Add backtrace                          	false
+Alignment mode                         	3
+Alignment mode                         	0
+Allow wrapped scoring                  	false
+E-value threshold                      	0.001
+Seq. id. threshold                     	0
+Min alignment length                   	0
+Seq. id. mode                          	0
+Alternative alignments                 	0
+Coverage threshold                     	0
+Coverage mode                          	0
+Max sequence length                    	65535
+Compositional bias                     	1
+Compositional bias scale               	1
+Max reject                             	2147483647
+Max accept                             	2147483647
+Include identical seq. id.             	false
+Preload mode                           	1
+Pseudo count a                         	substitution:1.100,context:1.400
+Pseudo count b                         	substitution:4.100,context:5.800
+Score bias                             	0
+Realign hits                           	false
+Realign score bias                     	-0.2
+Realign max seqs                       	2147483647
+Correlation score weight               	0
+Gap open cost                          	aa:11,nucl:5
+Gap extension cost                     	aa:1,nucl:2
+Zdrop                                  	40
+Threads                                	16
+Compressed                             	0
+Verbosity                              	3
+Seed substitution matrix               	aa:VTML80.out,nucl:nucleotide.out
+Sensitivity                            	5.7
+k-mer length                           	0
+Target search mode                     	0
+k-score                                	seq:2147483647,prof:2147483647
+Alphabet size                          	aa:21,nucl:5
+Max results per query                  	300
+Split database                         	0
+Split mode                             	2
+Split memory limit                     	0
+Diagonal scoring                       	true
+Exact k-mer matching                   	0
+Mask residues                          	1
+Mask residues probability              	0.9
+Mask lower case residues               	0
+Mask lower letter repeating N times    	0
+Minimum diagonal score                 	15
+Selected taxa                          	
+Spaced k-mers                          	1
+Spaced k-mer pattern                   	
+Local temporary path                   	
+Use GPU                                	0
+Use GPU server                         	0
+Wait for GPU server                    	600
+Prefilter mode                         	0
+Rescore mode                           	0
+Remove hits by seq. id. and coverage   	false
+Sort results                           	0
+Mask profile                           	1
+Profile E-value threshold              	0.001
+Global sequence weighting              	false
+Allow deletions                        	false
+Filter MSA                             	1
+Use filter only at N seqs              	0
+Maximum seq. id. threshold             	0.9
+Minimum seq. id.                       	0.0
+Minimum score per column               	-20
+Minimum coverage                       	0
+Select N most diverse seqs             	1000
+Pseudo count mode                      	0
+Profile output mode                    	0
+Min codons in orf                      	30
+Max codons in length                   	32734
+Max orf gaps                           	2147483647
+Contig start mode                      	2
+Contig end mode                        	2
+Orf start mode                         	1
+Forward frames                         	1,2,3
+Reverse frames                         	1,2,3
+Translation table                      	1
+Translate orf                          	0
+Use all table starts                   	false
+Offset of numeric ids                  	0
+Create lookup                          	0
+Overlap between sequences              	0
+Sequence split mode                    	1
+Header split mode                      	0
+Chain overlapping alignments           	0
+Merge query                            	1
+Search type                            	0
+Search iterations                      	1
+Start sensitivity                      	4
+Search steps                           	1
+Exhaustive search mode                 	false
+Filter results during exhaustive search	0
+Strand selection                       	1
+LCA search mode                        	false
+Disk space limit                       	0
+MPI runner                             	
+Force restart with latest tmp          	false
+Remove temporary files                 	true
+Translation mode                       	0
+Alignment format                       	4
+Format alignment output                	query,target,fident,qcov,evalue,bits,taxid,taxname,taxlineage
+Database output                        	false
+Overlap threshold                      	0
+Database type                          	0
+Shuffle input database                 	true
+Createdb mode                          	0
+Write lookup file                      	0
+Greedy best hits                       	false
+
+createdb /localscratch/julius.schlensok/42130807/sample.fasta /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/query --threads 16 
+
+Converting sequences
+[
+Time for merging to query_h: 0h 0m 0s 2ms
+Time for merging to query: 0h 0m 0s 2ms
+Database type: Aminoacid
+Time for processing: 0h 0m 0s 29ms
+Create directory /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/search_tmp
+search /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/query /lustre/groups/shared/hei/databases/mmseqs2/uniref50/2026_03/uniref50 /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/result /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/search_tmp --alignment-mode 3 --db-load-mode 1 --threads 16 -s 5.7 --remove-tmp-files 1 
+
+prefilter /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/query /lustre/groups/shared/hei/databases/mmseqs2/uniref50/2026_03/uniref50.idx /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/search_tmp/14244935433319822534/pref_0 --sub-mat 'aa:blosum62.out,nucl:nucleotide.out' --seed-sub-mat 'aa:VTML80.out,nucl:nucleotide.out' -k 0 --target-search-mode 0 --k-score seq:2147483647,prof:2147483647 --alph-size aa:21,nucl:5 --max-seq-len 65535 --max-seqs 300 --split 0 --split-mode 2 --split-memory-limit 0 -c 0 --cov-mode 0 --comp-bias-corr 1 --comp-bias-corr-scale 1 --diag-score 1 --exact-kmer-matching 0 --mask 1 --mask-prob 0.9 --mask-lower-case 0 --mask-n-repeat 0 --min-ungapped-score 15 --add-self-matches 0 --spaced-kmer-mode 1 --db-load-mode 1 --pca substitution:1.100,context:1.400 --pcb substitution:4.100,context:5.800 --threads 16 --compressed 0 -v 3 -s 5.7 
+
+Index version: 16
+Generated by:  8cc5ce367b5638c4306c2d7cfc652dd099a4643f
+ScoreMatrix:  VTML80.out
+Query database size: 60 type: Aminoacid
+Estimated memory consumption: 120G
+Target database size: 38840027 type: Aminoacid
+Process prefiltering step 1 of 1
+
+k-mer similarity threshold: 122
+Starting prefiltering scores calculation (step 1 of 1)
+Query db start 1 to 60
+Target db start 1 to 38840027
+[=================================================================] 60 3s 476ms
+
+2463.950618 k-mers per position
+17480084 DB matches per sequence
+0 overflows
+300 sequences passed prefiltering per query sequence
+300 median result list length
+0 sequences with 0 size result lists
+Time for merging to pref_0: 0h 0m 0s 1ms
+Time for processing: 0h 2m 0s 871ms
+align /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/query /lustre/groups/shared/hei/databases/mmseqs2/uniref50/2026_03/uniref50.idx /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/search_tmp/14244935433319822534/pref_0 /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/result --sub-mat 'aa:blosum62.out,nucl:nucleotide.out' -a 0 --alignment-mode 3 --alignment-output-mode 0 --wrapped-scoring 0 -e 0.001 --min-seq-id 0 --min-aln-len 0 --seq-id-mode 0 --alt-ali 0 -c 0 --cov-mode 0 --max-seq-len 65535 --comp-bias-corr 1 --comp-bias-corr-scale 1 --max-rejected 2147483647 --max-accept 2147483647 --add-self-matches 0 --db-load-mode 1 --pca substitution:1.100,context:1.400 --pcb substitution:4.100,context:5.800 --score-bias 0 --realign 0 --realign-score-bias -0.2 --realign-max-seqs 2147483647 --corr-score-weight 0 --gap-open aa:11,nucl:5 --gap-extend aa:1,nucl:2 --zdrop 40 --threads 16 --compressed 0 -v 3 
+
+Index version: 16
+Generated by:  8cc5ce367b5638c4306c2d7cfc652dd099a4643f
+ScoreMatrix:  VTML80.out
+Compute score, coverage and sequence identity
+Query database size: 60 type: Aminoacid
+Target database size: 38840027 type: Aminoacid
+Calculation of alignments
+[=================================================================] 60 2s 560ms
+Time for merging to result: 0h 0m 0s 1ms
+18000 alignments calculated
+17429 sequence pairs passed the thresholds (0.968278 of overall calculated)
+290.483337 hits per query sequence
+Time for processing: 0h 0m 21s 88ms
+rmdb /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/search_tmp/14244935433319822534/pref_0 -v 3 
+
+Time for processing: 0h 0m 0s 2ms
+rmdb /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/search_tmp/14244935433319822534/aln_0 -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+rmdb /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/search_tmp/14244935433319822534/input_0 -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+rmdb /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/search_tmp/14244935433319822534/aln_merge -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+convertalis /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/query /lustre/groups/shared/hei/databases/mmseqs2/uniref50/2026_03/uniref50.idx /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/result outputs/taxonomy_uniref50/unclassified_sample_vs_uniref50.tsv --sub-mat 'aa:blosum62.out,nucl:nucleotide.out' --format-mode 4 --format-output query,target,fident,qcov,evalue,bits,taxid,taxname,taxlineage --translation-table 1 --gap-open aa:11,nucl:5 --gap-extend aa:1,nucl:2 --db-output 0 --db-load-mode 1 --search-type 0 --threads 16 --compressed 0 -v 3 
+
+Index version: 16
+Generated by:  8cc5ce367b5638c4306c2d7cfc652dd099a4643f
+ScoreMatrix:  VTML80.out
+Index version: 16
+Generated by:  8cc5ce367b5638c4306c2d7cfc652dd099a4643f
+ScoreMatrix:  VTML80.out
+[=================================================================] 60 4s 893ms
+Time for merging to unclassified_sample_vs_uniref50.tsv: 0h 0m 0s 365ms
+Time for processing: 0h 0m 13s 899ms
+rmdb /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/result -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+rmdb /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/query -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+rmdb /localscratch/julius.schlensok/42130807/tmp/10962031400846953573/query_h -v 3 
+
+Time for processing: 0h 0m 0s 0ms

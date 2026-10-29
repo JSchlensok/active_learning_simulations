@@ -1,0 +1,4 @@
+# Search results and the rendered report stay local (copies of outputs/ also remain in the cluster run directory);
+# scripts/build_report.py rebuilds the report from outputs/
+outputs/
+report/colh_homolog_report.html

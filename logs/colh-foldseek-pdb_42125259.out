@@ -1,0 +1,174 @@
+941cd33ff0771cd2e3f144e3293e22a2b87e9fda
+easy-search inputs/9LRK.cif.gz /lustre/groups/shared/hei/databases/foldseek/pdb/2025-01-01/pdb outputs/foldseek_pdb/9LRK_vs_pdb.tsv /localscratch/julius.schlensok/42125259 --threads 8 --db-load-mode 1 --format-mode 4 --format-output query,target,fident,alnlen,mismatch,gapopen,qstart,qend,qlen,tstart,tend,tlen,qcov,tcov,evalue,bits,prob,alntmscore,qtmscore,ttmscore,lddt,taxid,taxname,theader 
+
+MMseqs Version:                    	941cd33ff0771cd2e3f144e3293e22a2b87e9fda
+Seq. id. threshold                 	0
+Coverage threshold                 	0
+Coverage mode                      	0
+Max reject                         	2147483647
+Max accept                         	2147483647
+Add backtrace                      	false
+TMscore threshold                  	0
+TMscore threshold mode             	0
+TMalign hit order                  	0
+TMalign fast                       	1
+Preload mode                       	1
+Threads                            	8
+Verbosity                          	3
+LDDT threshold                     	0
+Sort by structure bit score        	1
+Alignment type                     	2
+Exact TMscore                      	0
+Substitution matrix                	aa:3di.out,nucl:3di.out
+Alignment mode                     	3
+Alignment mode                     	0
+E-value threshold                  	10
+Min alignment length               	0
+Seq. id. mode                      	0
+Alternative alignments             	0
+Max sequence length                	65535
+Compositional bias                 	1
+Compositional bias                 	1
+Gap open cost                      	aa:10,nucl:10
+Gap extension cost                 	aa:1,nucl:1
+Compressed                         	0
+Seed substitution matrix           	aa:3di.out,nucl:3di.out
+Sensitivity                        	9.5
+k-mer length                       	6
+Target search mode                 	0
+k-score                            	seq:2147483647,prof:2147483647
+Max results per query              	1000
+Split database                     	0
+Split mode                         	2
+Split memory limit                 	0
+Diagonal scoring                   	true
+Exact k-mer matching               	0
+Mask residues                      	0
+Mask residues probability          	0.999995
+Mask lower case residues           	1
+Mask lower letter repeating N times	6
+Minimum diagonal score             	30
+Selected taxa                      	
+Spaced k-mers                      	1
+Spaced k-mer pattern               	
+Local temporary path               	
+Use GPU                            	0
+Use GPU server                     	0
+Wait for GPU server                	600
+Prefilter mode                     	0
+Exhaustive search mode             	false
+Search iterations                  	1
+Remove temporary files             	true
+MPI runner                         	
+Force restart with latest tmp      	false
+Cluster search                     	0
+Path to ProstT5                    	
+Chain name mode                    	0
+Createdb extraction mode           	0
+Interface distance threshold       	8
+Write mapping file                 	0
+Mask b-factor threshold            	0
+Coord store mode                   	2
+Write lookup file                  	1
+Input format                       	0
+File Inclusion Regex               	.*
+File Exclusion Regex               	^$
+Alignment format                   	4
+Format alignment output            	query,target,fident,alnlen,mismatch,gapopen,qstart,qend,qlen,tstart,tend,tlen,qcov,tcov,evalue,bits,prob,alntmscore,qtmscore,ttmscore,lddt,taxid,taxname,theader
+Database output                    	false
+Report mode                        	2
+Greedy best hits                   	false
+
+Alignment backtraces will be computed, since they were requested by output format.
+createdb inputs/9LRK.cif.gz /localscratch/julius.schlensok/42125259/7293090642051321153/query --gpu 0 --chain-name-mode 0 --db-extraction-mode 0 --distance-threshold 8 --write-mapping 0 --mask-bfactor-threshold 0 --coord-store-mode 2 --write-lookup 1 --input-format 0 --file-include '.*' --file-exclude '^$' --threads 8 -v 3 
+
+Output file: /localscratch/julius.schlensok/42125259/7293090642051321153/query
+[=================================================================] 1 0s 2ms
+Time for merging to query_ss: 0h 0m 0s 1ms
+Time for merging to query_h: 0h 0m 0s 0ms
+Time for merging to query_ca: 0h 0m 0s 0ms
+Time for merging to query: 0h 0m 0s 0ms
+Ignore 0 out of 1.
+Too short: 0, incorrect: 0, not proteins: 0.
+Time for processing: 0h 0m 0s 235ms
+Create directory /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp
+search /localscratch/julius.schlensok/42125259/7293090642051321153/query /lustre/groups/shared/hei/databases/foldseek/pdb/2025-01-01/pdb /localscratch/julius.schlensok/42125259/7293090642051321153/result /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp -a 1 --db-load-mode 1 --threads 8 --alignment-mode 3 -s 9.5 -k 6 --remove-tmp-files 1 
+
+prefilter /localscratch/julius.schlensok/42125259/7293090642051321153/query_ss /lustre/groups/shared/hei/databases/foldseek/pdb/2025-01-01/pdb_ss /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp/11865063736874169060/pref --sub-mat 'aa:3di.out,nucl:3di.out' --seed-sub-mat 'aa:3di.out,nucl:3di.out' -s 9.5 -k 6 --target-search-mode 0 --k-score seq:2147483647,prof:2147483647 --alph-size aa:21,nucl:5 --max-seq-len 65535 --max-seqs 1000 --split 0 --split-mode 2 --split-memory-limit 0 -c 0 --cov-mode 0 --comp-bias-corr 1 --comp-bias-corr-scale 0.15 --diag-score 1 --exact-kmer-matching 0 --mask 0 --mask-prob 0.999995 --mask-lower-case 1 --mask-n-repeat 6 --min-ungapped-score 30 --add-self-matches 0 --spaced-kmer-mode 1 --db-load-mode 1 --pca substitution:1.100,context:1.400 --pcb substitution:4.100,context:5.800 --threads 8 --compressed 0 -v 3 
+
+Query database size: 1 type: Aminoacid
+Estimated memory consumption: 1G
+Target database size: 324204 type: Aminoacid
+Index table k-mer threshold: 78 at k-mer size 6 
+Index table: counting k-mers
+[=================================================================] 324.20K 4s 332ms
+Index table: Masked residues: 2549108
+Index table: fill
+[=================================================================] 324.20K 1s 979ms
+Index statistics
+Entries:          65337269
+DB size:          862 MB
+Avg k-mer size:   1.020895
+Top 10 k-mers
+    LVLVVV	69834
+    VVLVVV	60313
+    SVSVVV	56538
+    VVSVVV	48617
+    LVVVVV	46574
+    SVVVVV	38775
+    VVQVVV	21030
+    LVSVVV	20517
+    PVSVVV	17960
+    VSVVVV	17094
+Time for index table init: 0h 0m 6s 985ms
+Process prefiltering step 1 of 1
+
+k-mer similarity threshold: 78
+Starting prefiltering scores calculation (step 1 of 1)
+Query db start 1 to 1
+Target db start 1 to 324204
+[=================================================================] 1 0s 5ms
+
+4965.298429 k-mers per position
+37426759 DB matches per sequence
+1 overflows
+1000 sequences passed prefiltering per query sequence
+1000 median result list length
+0 sequences with 0 size result lists
+Time for merging to pref: 0h 0m 0s 0ms
+Time for processing: 0h 0m 8s 630ms
+structurealign /localscratch/julius.schlensok/42125259/7293090642051321153/query /lustre/groups/shared/hei/databases/foldseek/pdb/2025-01-01/pdb /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp/11865063736874169060/pref /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp/11865063736874169060/strualn --tmscore-threshold 0 --tmscore-threshold-mode 0 --lddt-threshold 0 --sort-by-structure-bits 1 --alignment-type 2 --exact-tmscore 0 --sub-mat 'aa:3di.out,nucl:3di.out' -a 1 --alignment-mode 3 --alignment-output-mode 0 --wrapped-scoring 0 -e 10 --min-seq-id 0 --min-aln-len 0 --seq-id-mode 0 --alt-ali 0 -c 0 --cov-mode 0 --max-seq-len 65535 --comp-bias-corr 1 --comp-bias-corr-scale 0.5 --max-rejected 2147483647 --max-accept 2147483647 --add-self-matches 0 --db-load-mode 1 --pca substitution:1.100,context:1.400 --pcb substitution:4.100,context:5.800 --score-bias 0 --realign 0 --realign-score-bias -0.2 --realign-max-seqs 2147483647 --corr-score-weight 0 --gap-open aa:10,nucl:10 --gap-extend aa:1,nucl:1 --zdrop 40 --threads 8 --compressed 0 -v 3 
+
+[=================================================================] 1 0s 43ms
+Time for merging to strualn: 0h 0m 0s 0ms
+Time for processing: 0h 0m 2s 126ms
+mvdb /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp/11865063736874169060/strualn /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp/11865063736874169060/aln -v 3 
+
+Time for processing: 0h 0m 0s 2ms
+mvdb /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp/11865063736874169060/aln /localscratch/julius.schlensok/42125259/7293090642051321153/result -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+Removing temporary files
+rmdb /localscratch/julius.schlensok/42125259/7293090642051321153/search_tmp/11865063736874169060/pref -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+convertalis /localscratch/julius.schlensok/42125259/7293090642051321153/query /lustre/groups/shared/hei/databases/foldseek/pdb/2025-01-01/pdb /localscratch/julius.schlensok/42125259/7293090642051321153/result outputs/foldseek_pdb/9LRK_vs_pdb.tsv --sub-mat 'aa:3di.out,nucl:3di.out' --format-mode 4 --format-output query,target,fident,alnlen,mismatch,gapopen,qstart,qend,qlen,tstart,tend,tlen,qcov,tcov,evalue,bits,prob,alntmscore,qtmscore,ttmscore,lddt,taxid,taxname,theader --translation-table 1 --gap-open aa:10,nucl:10 --gap-extend aa:1,nucl:1 --db-output 0 --db-load-mode 1 --search-type 0 --threads 8 --compressed 0 -v 3 --exact-tmscore 0 
+
+[=================================================================] 1 0s 10ms
+Time for merging to 9LRK_vs_pdb.tsv: 0h 0m 0s 31ms
+Time for processing: 0h 0m 8s 312ms
+rmdb /localscratch/julius.schlensok/42125259/7293090642051321153/result -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+rmdb /localscratch/julius.schlensok/42125259/7293090642051321153/query -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+rmdb /localscratch/julius.schlensok/42125259/7293090642051321153/query_h -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+rmdb /localscratch/julius.schlensok/42125259/7293090642051321153/query_ca -v 3 
+
+Time for processing: 0h 0m 0s 0ms
+rmdb /localscratch/julius.schlensok/42125259/7293090642051321153/query_ss -v 3 
+
+Time for processing: 0h 0m 0s 0ms
