@@ -16,7 +16,8 @@ from al_splits import DEFAULT_SEED, ALSimulatorSplit
 
 from biocentral_api import SequenceData, ActiveLearningScreeningCampaignConfig, ActiveLearningScreeningSimulationConfig, \
     ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, \
-    ActiveLearningScreeningSimulationResult, ActiveLearningStoppingConfig
+    ActiveLearningScreeningSimulationResult, ActiveLearningStoppingConfig, \
+    ActiveLearningEngineeringCampaignConfig, ActiveLearningEngineeringSimulationConfig
 
 
 class DashboardSingleSimulationData(BaseModel):
@@ -102,6 +103,20 @@ class CampaignSettings(BaseModel):
     def fingerprint(self) -> str:
         digest = hashlib.sha256(self.model_dump_json().encode("utf-8"))
         return digest.hexdigest()[:8]
+
+
+class EngineeringCampaignSettings(CampaignSettings):
+    """Campaign settings for a simulated engineering campaign.
+
+    A subclass rather than extra fields on CampaignSettings: the fingerprint hashes every
+    field, so widening the base would rename every existing screening result file.
+    """
+
+    n_candidates_per_iteration: int = Field(
+        default=1000, description="Unlabelled landscape variants scored per round")
+    use_delta_embeddings: bool = Field(
+        default=False,
+        description="Subtract the wildtype embedding from each variant's (PLM embedders only)")
 
 
 LOW_THROUGHPUT = CampaignSettings(short_name="low", n_start=10, n_suggestions_per_iteration=5)
@@ -308,6 +323,63 @@ class ActiveLearningSimulator:
         return ActiveLearningMultipleSimulationResult(simulation_results)
 
 
+class ActiveLearningEngineeringSimulator(ActiveLearningSimulator):
+    """Simulates an engineering campaign: each round mutates the wild type and scores
+    candidates drawn from the landscape, so the generator -- and features that only exist
+    on the engineering path, such as delta embeddings -- are exercised end to end."""
+
+    def get_simulation_config(self):
+        start_ids = self.base_config.start_ids
+        settings = self.base_config.settings
+        return ActiveLearningEngineeringSimulationConfig(
+            simulation_data=self.base_config.simulation_data,
+            n_start=None if start_ids else settings.n_start,
+            start_ids=start_ids,
+            n_suggestions_per_iteration=settings.n_suggestions_per_iteration,
+            n_candidates_per_iteration=settings.n_candidates_per_iteration,
+            stopping_config=ActiveLearningStoppingConfig(
+                n_max_iterations=settings.n_iterations,
+                max_labels_budget=settings.max_labels_budget,
+                n_hits=settings.stop_at_n_hits,
+                max_consecutive_failures=settings.stop_after_failed_rounds,
+            ),
+        )
+
+    def _run_simulation(self, model_type: ActiveLearningModelType, embedder_name: str,
+                        seed: int,
+                        show_progress: bool = True) -> ActiveLearningSingleSimulationResult:
+        settings = self.base_config.settings
+        al_campaign_config = ActiveLearningEngineeringCampaignConfig(
+            name="Test",  # TODO
+            embedder_name=embedder_name,
+            model_type=model_type,
+            optimization_mode=self.base_config.optimization_mode,
+            seed=seed,
+            wildtype_sequence=self.base_config.dataset_id.reference_sequence(),
+            use_delta_embeddings=settings.use_delta_embeddings)
+        al_simulation_config = self.get_simulation_config()
+        task = biocentral_api().al_engineering_simulation(campaign_config=al_campaign_config,
+                                                          simulation_config=al_simulation_config)
+        result = task.run_with_progress() if show_progress else task.run()
+        TASK_TIMINGS.append((
+            (f"{self.base_config.dataset_id.name}/{embedder_name}/{model_type.value}"
+             f"/{settings.short_name}/seed{seed}"),
+            task.timing,
+        ))
+        if result is None:
+            raise RuntimeError("Simulation failed")
+        if not STORE_PREDICTIONS:
+            for iteration_result in result.iteration_results or []:
+                iteration_result.results = []
+
+        return ActiveLearningSingleSimulationResult(
+            dataset_id=self.base_config.dataset_id,
+            split_id=self.base_config.split_id,
+            al_campaign_config=al_campaign_config,
+            al_simulation_config=al_simulation_config,
+            simulation_result=result)
+
+
 class ActiveLearningSingleSimulationResult:
     def __init__(self,
                  dataset_id: ALSimulatorDataset,
@@ -324,11 +396,15 @@ class ActiveLearningSingleSimulationResult:
     def get_total_number_of_suggestions(self):
         return sum([len(it_res.suggestions) for it_res in self.simulation_result.iteration_results])
 
+    def is_engineering(self) -> bool:
+        return isinstance(self.al_campaign_config, ActiveLearningEngineeringCampaignConfig)
+
     def model_dump_json(self):
         """Serialize to JSON string"""
         return json.dumps({
             'dataset_id': self.dataset_id.value,
             'split_id': self.split_id.value,
+            'path': 'engineering' if self.is_engineering() else 'screening',
             'al_campaign_config': json.loads(self.al_campaign_config.model_dump_json()),
             'al_simulation_config': json.loads(self.al_simulation_config.model_dump_json()),
             'simulation_result': json.loads(self.simulation_result.model_dump_json())
@@ -338,13 +414,19 @@ class ActiveLearningSingleSimulationResult:
     def model_validate_json(cls, json_str: str):
         """Create instance from JSON string"""
         data = json.loads(json_str)
+        # Results written before engineering simulations existed are all screening runs.
+        engineering = data.get('path', 'screening') == 'engineering'
+        campaign_cls = (ActiveLearningEngineeringCampaignConfig if engineering
+                        else ActiveLearningScreeningCampaignConfig)
+        simulation_cls = (ActiveLearningEngineeringSimulationConfig if engineering
+                          else ActiveLearningScreeningSimulationConfig)
         return cls(
             dataset_id=ALSimulatorDataset(data['dataset_id']),
             # Results written before splits existed have no split_id; they are all full-pool runs.
             split_id=ALSimulatorSplit(data.get('split_id', ALSimulatorSplit.FULL_POOL.value)),
-            al_campaign_config=ActiveLearningScreeningCampaignConfig.model_validate_json(
+            al_campaign_config=campaign_cls.model_validate_json(
                 json.dumps(data['al_campaign_config'])),
-            al_simulation_config=ActiveLearningScreeningSimulationConfig.model_validate_json(
+            al_simulation_config=simulation_cls.model_validate_json(
                 json.dumps(data['al_simulation_config'])),
             simulation_result=ActiveLearningScreeningSimulationResult.model_validate_json(
                 json.dumps(data['simulation_result']))
