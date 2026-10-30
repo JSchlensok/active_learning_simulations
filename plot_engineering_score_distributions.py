@@ -15,6 +15,7 @@ from biotrainer_core.input_files import read_FASTA
 from matplotlib.ticker import FuncFormatter
 
 from al_simulation_container import ALSimulatorDataset
+from al_splits import substitutions
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +62,13 @@ def _format_log_counts(value: float, _pos: object) -> str:
 
 
 def load_labels() -> pl.DataFrame:
-    """One row per variant, with the hit rule applied the way the server applies it."""
+    """One row per variant, with the hit rule applied the way the server applies it and
+    its substitution count against the wild type."""
     frames = []
     for dataset in ALSimulatorDataset.engineering():
-        labels = [s.label for s in read_FASTA(dataset.to_path())]
+        records = read_FASTA(dataset.to_path())
+        reference = dataset.reference_sequence()
+        labels = [s.label for s in records]
         scores = np.asarray(labels, dtype=float)
         discrete = dataset.definition().optimization_mode.value == "DISCRETE"
         if discrete:
@@ -83,6 +87,9 @@ def load_labels() -> pl.DataFrame:
                     "score": scores,
                     "is_hit": is_hit,
                     "hit_cut": hit_cut,
+                    "mutations": [
+                        len(substitutions(s.seq, reference)) for s in records
+                    ],
                 }
             )
         )
