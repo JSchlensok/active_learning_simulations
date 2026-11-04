@@ -18,14 +18,16 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 
-import al_plots
-from al_paths import RESULTS_DIR, PROJECTIONS_DIR
-from al_simulation_container import ALSimulatorDataset
-from al_simulator import (
-    get_simulator,
-    ActiveLearningSimulator,
+from bioengineer_active_learning_simulations import plots as al_plots
+from bioengineer_active_learning_simulations.dashboard_models import (
     DashboardCompressedData,
     DashboardExperimentData,
+)
+from bioengineer_active_learning_simulations.datasets import ALSimulatorDataset
+from bioengineer_active_learning_simulations.paths import PROJECTIONS_DIR, RESULTS_DIR
+from bioengineer_active_learning_simulations.simulators import (
+    ActiveLearningSimulator,
+    get_simulator,
 )
 
 st.set_page_config(page_title="AL Simulation Dashboard", layout="wide")

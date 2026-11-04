@@ -3,12 +3,18 @@ from biotrainer_core.input_files import read_FASTA
 from pydantic import BaseModel, Field
 from biocentral_api import ActiveLearningModelType, CommonEmbedder
 
-from al_paths import RESULTS_DIR, PROJECTIONS_DIR
-from al_compress_reports import compress_reports
-from al_simulation_container import ALSimulatorDataset
-from al_splits import ALSimulatorSplit
-from al_simulator import (CAMPAIGN_SETTINGS, ActiveLearningMultipleSimulationResult,
-                          biocentral_api, get_simulator)
+from bioengineer_active_learning_simulations.compress_reports import compress_reports
+from bioengineer_active_learning_simulations.datasets import ALSimulatorDataset
+from bioengineer_active_learning_simulations.paths import PROJECTIONS_DIR, RESULTS_DIR
+from bioengineer_active_learning_simulations.results import (
+    ActiveLearningMultipleSimulationResult,
+)
+from bioengineer_active_learning_simulations.settings import CAMPAIGN_SETTINGS
+from bioengineer_active_learning_simulations.simulators import (
+    biocentral_api,
+    get_simulator,
+)
+from bioengineer_active_learning_simulations.splits import ALSimulatorSplit
 
 
 class ExperimentConstants:

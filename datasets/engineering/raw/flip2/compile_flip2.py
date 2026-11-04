@@ -3,7 +3,7 @@
 **Splits are ignored.** Each source CSV carries `set` and `validation` columns holding FLIP2's
 train/test assignment, and this script drops both, keeping every row. These simulations mask all
 labels and replay a campaign over the whole pool, so FLIP2's supervised boundary is not meaningful
-here; the equivalent notion lives in `al_splits.py` and is applied at simulation time. For TrpB that
+here; the equivalent notion lives in the `splits` module and is applied at simulation time. For TrpB that
 also means only one of its three split files needs reading: all three carry identical `sequence` and
 `target` columns for the same 228 298 variants, row for row, and differ only in `set`.
 

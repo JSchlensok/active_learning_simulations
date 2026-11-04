@@ -87,7 +87,7 @@ preprocessor then writes `engineering/flip2_<name>_max2000.fasta`, which is what
 
 **Splits are dropped.** The `set` and `validation` columns are discarded and every row kept. These
 simulations mask all labels and replay a campaign over the whole pool, so FLIP2's supervised boundary
-is not meaningful here — the equivalent notion lives in [al_splits.py](../../../../al_splits.py) and is
+is not meaningful here — the equivalent notion lives in [splits.py](../../../../bioengineer_active_learning_simulations/splits.py) and is
 applied at simulation time. For TrpB that also means only one of the three split files is read, since
 all three carry identical `sequence` and `target` columns row for row.
 

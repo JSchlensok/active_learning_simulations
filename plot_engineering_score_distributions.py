@@ -14,7 +14,7 @@ import seaborn as sns
 from biotrainer_core.input_files import read_FASTA
 from matplotlib.ticker import FuncFormatter
 
-from al_simulation_container import ALSimulatorDataset
+from bioengineer_active_learning_simulations.datasets import ALSimulatorDataset
 
 logger = logging.getLogger(__name__)
 
