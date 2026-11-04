@@ -24,7 +24,7 @@ from .results import (
     ActiveLearningSingleSimulationResult,
 )
 from .settings import ActiveLearningFixedBaseConfig
-from .splits import ALSimulatorSplit
+from .splits import ALSimulatorSplit, design_space
 
 
 def get_simulator(
@@ -247,18 +247,28 @@ class ActiveLearningEngineeringSimulator(ActiveLearningSimulator):
     result_cls = ActiveLearningEngineeringSingleSimulationResult
 
     def get_simulation_config(self) -> ActiveLearningEngineeringSimulationConfig:
+        settings = self.base_config.settings
         return ActiveLearningEngineeringSimulationConfig(
             **self._simulation_config_fields(),
-            n_candidates_per_iteration=self.base_config.settings.n_candidates_per_iteration,
+            n_candidates_per_iteration=settings.n_candidates_per_iteration,
+            generate_candidates=settings.generate_candidates,
+            n_substitutions=settings.n_substitutions,
         )
 
     def _campaign_config(
         self, embedder_name: str, model_type: ActiveLearningModelType, seed: int
     ) -> ActiveLearningEngineeringCampaignConfig:
+        settings = self.base_config.settings
+        reference = self.base_config.dataset_id.reference_sequence()
         return ActiveLearningEngineeringCampaignConfig(
             **self._campaign_config_fields(embedder_name, model_type, seed),
-            wildtype_sequence=self.base_config.dataset_id.reference_sequence(),
-            use_delta_embeddings=self.base_config.settings.use_delta_embeddings,
+            wildtype_sequence=reference,
+            allowed_substitutions=(
+                design_space(self.base_config.simulation_data, reference)
+                if settings.generate_candidates
+                else None
+            ),
+            use_delta_embeddings=settings.use_delta_embeddings,
         )
 
     def _submit(self, campaign_config, simulation_config):
