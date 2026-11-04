@@ -1,11 +1,12 @@
 import re
 
-from al_paths import RESULTS_DIR
-from al_simulator import (
-    ActiveLearningMultipleSimulationResult,
+from .dashboard_models import (
     DashboardCompressedData,
-    DashboardExperimentData, DashboardSingleSimulationData,
+    DashboardExperimentData,
+    DashboardSingleSimulationData,
 )
+from .paths import RESULTS_DIR
+from .results import ActiveLearningMultipleSimulationResult
 
 
 def parse_dataset_from_filename(fname: str) -> str:

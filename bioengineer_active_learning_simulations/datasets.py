@@ -17,7 +17,7 @@ class ALSimulatorDatasetDefinition(BaseModel):
     reference_fasta_path: Optional[str] = Field(
         default=None,
         description="Single-sequence FASTA with the wild type this dataset mutates. Only mutational "
-                    "landscapes have one; mutation-aware splits (see al_splits) require it.")
+                    "landscapes have one; mutation-aware splits (see splits) require it.")
 
 
 class ALSimulatorDataset(Enum):
@@ -49,7 +49,7 @@ class ALSimulatorDataset(Enum):
     @staticmethod
     def engineering():
         """Single-parent mutational landscapes. These declare a wild type, so they are the datasets
-        the mutation-aware extrapolation splits in al_splits can be applied to."""
+        the mutation-aware extrapolation splits in the splits module can be applied to."""
         return [ALSimulatorDataset.COMBINGYM_GB1,
                 ALSimulatorDataset.COMBINGYM_CREILOV,
                 ALSimulatorDataset.COMBINGYM_CR9114,

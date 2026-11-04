@@ -1,355 +1,25 @@
 from __future__ import annotations
 
-import hashlib
 import json
-import numpy as np
-import altair as alt
-
-from abc import ABC, abstractmethod
-from functools import cache
 from pathlib import Path
 from typing import ClassVar, List, Optional
-from pydantic import BaseModel, ConfigDict, Field
-from biotrainer_core.input_files import read_FASTA
 
-from al_simulation_container import ALSimulatorDataset
-from al_splits import DEFAULT_SEED, ALSimulatorSplit
+import altair as alt
+import numpy as np
+from biocentral_api import (
+    ActiveLearningEngineeringCampaignConfig,
+    ActiveLearningEngineeringSimulationConfig,
+    ActiveLearningModelType,
+    ActiveLearningOptimizationMode,
+    ActiveLearningScreeningCampaignConfig,
+    ActiveLearningScreeningSimulationConfig,
+    ActiveLearningScreeningSimulationResult,
+    SequenceData,
+)
+from pydantic import BaseModel
 
-from biocentral_api import SequenceData, ActiveLearningScreeningCampaignConfig, ActiveLearningScreeningSimulationConfig, \
-    ActiveLearningOptimizationMode, ActiveLearningModelType, BiocentralAPI, \
-    ActiveLearningScreeningSimulationResult, ActiveLearningStoppingConfig, \
-    ActiveLearningEngineeringCampaignConfig, ActiveLearningEngineeringSimulationConfig
-
-
-class DashboardSingleSimulationData(BaseModel):
-    label: str = Field(..., description="Label identifying the simulation with seed, model type, and success status")
-    is_success: bool = Field(...,
-                             description="Whether the simulation met the success criteria (e.g. reached target hits)")
-    seed: int = Field(..., description="Random seed used for this simulation run")
-    stop_reasons: List[str] = Field(...,
-                                    description="Reasons why the simulation stopped (e.g., budget exhausted, convergence reached)")
-    iteration_metrics_total: List[float] = Field(...,
-                                                 description="Mean metric values for all masked data points per iteration")
-    iteration_metrics_suggestions: List[float] = Field(...,
-                                                       description="Mean metric values for suggested data points per iteration")
-    iteration_hits: List[List[str]] = Field(..., description="Hits found in each iteration")
-    iteration_consecutive_failures: List[int] = Field(...,
-                                                      description="Count of consecutive failures in each iteration")
-    iteration_results_count: int = Field(..., description="Total number of iteration results in the simulation")
-    n_hits_threshold: int = Field(..., description="Target number of successful hits required for convergence")
-
-
-class DashboardExperimentData(BaseModel):
-    name: str
-    dataset_id: ALSimulatorDataset
-    embedder: str
-    model: str
-    # Optional so dashboard files written before splits existed still validate
-    split_id: Optional[ALSimulatorSplit] = None
-    summary: dict
-    aggregated_hits: int
-    aggregated_suggestions: int
-    potential_hits: List[str]
-    per_sim_n_hits: List[List[int]]
-    per_sim_metrics_total: List[List[float]]
-    per_sim_metrics_suggestions: List[List[float]]
-    per_sim_is_success: List[bool]
-    # For drill-down
-    single_sims: List[DashboardSingleSimulationData]
-
-
-class DashboardCompressedData(BaseModel):
-    run_name: str
-    experiments: List[DashboardExperimentData]
-
-
-class CampaignSettings(BaseModel):
-    """Defines how a simulated campaign acquires labelled variants.
-
-    Models a lab budget: `n_iterations` experimental rounds of
-    `n_suggestions_per_iteration` variants each.
-    """
-
-    model_config = ConfigDict(frozen=True)
-
-    short_name: str = Field(description="Tag identifying the regime, used in file names")
-    n_start: int = Field(description="Starting set size, including wildtype / parent")
-    n_suggestions_per_iteration: int = Field(description="Variants measured per round")
-    n_iterations: int = Field(default=8, description="Rounds a campaign is allowed")
-    n_replicates: int = Field(default=5, description="Seeded repeats per experiment")
-    first_seed: int = Field(
-        default=DEFAULT_SEED,
-        description="Seed of the first replicate",
-    )
-    redraw_start_set: bool = Field(
-        default=True,
-        description="Draw a fresh starting set per replicate. False shares one across all "
-                    "replicates, so they vary only in model stochasticity.")
-    # Stopping criteria. `n_iterations` always applies; these two are opt-in, so by default
-    # a campaign spends its whole budget and the hit rate covers the full 8 rounds. The
-    # server requires at least one of budget / hits / failed-rounds, which the derived
-    # `max_labels_budget` always satisfies.
-    stop_at_n_hits: Optional[int] = Field(
-        default=None,
-        description="Stop once this many hits are found. Spends full budget if set to None.")
-    stop_after_failed_rounds: Optional[int] = Field(
-        default=None,
-        description="Stop after this many consecutive rounds without a hit.")
-
-    @property
-    def max_labels_budget(self) -> int:
-        """Total variants a campaign may measure. Derived, so it cannot contradict the rounds."""
-        return self.n_iterations * self.n_suggestions_per_iteration
-
-    def fingerprint(self) -> str:
-        digest = hashlib.sha256(self.model_dump_json().encode("utf-8"))
-        return digest.hexdigest()[:8]
-
-
-class EngineeringCampaignSettings(CampaignSettings):
-    """Campaign settings for a simulated engineering campaign.
-
-    A subclass rather than extra fields on CampaignSettings: the fingerprint hashes every
-    field, so widening the base would rename every existing screening result file.
-    """
-
-    n_candidates_per_iteration: int = Field(
-        default=1000, description="Unlabelled landscape variants scored per round")
-    use_delta_embeddings: bool = Field(
-        default=False,
-        description="Subtract the wildtype embedding from each variant's (PLM embedders only)")
-
-
-LOW_THROUGHPUT = CampaignSettings(short_name="low", n_start=10, n_suggestions_per_iteration=5)
-HIGH_THROUGHPUT = CampaignSettings(short_name="high", n_start=96, n_suggestions_per_iteration=48)
-THROUGHPUTS = {settings.short_name: settings for settings in (LOW_THROUGHPUT, HIGH_THROUGHPUT)}
-
-# Default for callers that do not choose a regime
-CAMPAIGN_SETTINGS = LOW_THROUGHPUT
-
-
-class ActiveLearningFixedBaseConfig(BaseModel):
-    class Config:
-        frozen = False
-
-    """ Fixed base config for active learning simulations that does not change throughout simulation"""
-    # dataset_id
-    dataset_id: ALSimulatorDataset
-
-    # Simulation config
-    simulation_data: List[SequenceData]
-
-    # Split config (see al_splits). FULL_POOL is the identity split and changes nothing.
-    split_id: ALSimulatorSplit = ALSimulatorSplit.FULL_POOL
-    start_ids: Optional[List[str]] = None
-    settings: CampaignSettings = CAMPAIGN_SETTINGS
-
-    # Campaign config
-    optimization_mode: ActiveLearningOptimizationMode
-    target_lb: Optional[float] = None
-    target_ub: Optional[float] = None
-    target_value: Optional[float] = None
-    discrete_targets: Optional[List[str]] = None
-
-    def explain_optimization_mode(self) -> str:
-        match self.optimization_mode:
-            case ActiveLearningOptimizationMode.MAXIMIZE:
-                return "Maximize the target value."
-            case ActiveLearningOptimizationMode.MINIMIZE:
-                return "Minimize the target value."
-            case ActiveLearningOptimizationMode.DISCRETE:
-                return "Classify the sequences into discrete classes."
-            case ActiveLearningOptimizationMode.INTERVAL:
-                return "Find target sequences with labels in the specified interval."
-            case ActiveLearningOptimizationMode.VALUE:
-                return "Find targets with the specified value."
-            case _:
-                return "Unknown optimization mode."
-
-
-def get_simulator(
-    dataset_id: ALSimulatorDataset,
-    split_id: ALSimulatorSplit = ALSimulatorSplit.FULL_POOL,
-) -> ActiveLearningScreeningSimulator:
-    simulation_data = read_FASTA(dataset_id.to_path())
-    assert len(simulation_data) > 0, f"Simulation data for {dataset_id} is empty."
-
-    simulation_data, start_ids = _apply_split(dataset_id=dataset_id, split_id=split_id,
-                                              simulation_data=simulation_data)
-
-    definition = dataset_id.definition()
-    base_config = ActiveLearningFixedBaseConfig(
-        dataset_id=dataset_id,
-        simulation_data=simulation_data,
-        split_id=split_id,
-        start_ids=start_ids,
-        optimization_mode=definition.optimization_mode,
-        target_lb=definition.target_lb,
-        target_ub=definition.target_ub,
-        target_value=definition.target_value,
-        discrete_targets=definition.discrete_targets)
-    return ActiveLearningScreeningSimulator(al_base_config=base_config)
-
-
-def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
-                 simulation_data: List[SequenceData]) -> tuple[List[SequenceData], Optional[List[str]]]:
-    """Resolve a split into (pool, start_ids).
-
-    The split's *train* half becomes the campaign's starting set (``start_ids``); its *test* half
-    stays in the pool  unlabelled  for the campaign to discover
-    """
-    if split_id.is_identity():
-        return simulation_data, None
-
-    pool, assignment = split_id.resolve(simulation_data,
-                                        explicit_reference=dataset_id.reference_sequence())
-    if assignment is None:
-        print(f"Split {split_id.name}: pool {len(simulation_data)} -> {len(pool)} sequences.")
-        return pool, None
-
-    print(f"Split {split_id.name} [{split_id.definition().axis.value}] on {len(pool)} sequences: "
-          f"{assignment.summary()} ({assignment.description}).")
-    return pool, assignment.train_ids
-
-
-
-STORE_PREDICTIONS = False
-
-TASK_TIMINGS: List[tuple] = []
-
-
-def profile_summary(slowest: int = 5) -> str:
-    """Where client-side wall time went across every campaign run so far."""
-    if not TASK_TIMINGS:
-        return "No campaigns timed."
-    totals = {bucket: sum(getattr(timing, bucket) for _, timing in TASK_TIMINGS)
-              for bucket in ("total", "http", "sleep", "handler")}
-    polls = sum(timing.polls for _, timing in TASK_TIMINGS)
-    dtos = sum(timing.dtos for _, timing in TASK_TIMINGS)
-    # Whatever is left is server compute the client polled through.
-    waited = totals["total"] - totals["http"] - totals["sleep"] - totals["handler"]
-
-    lines = [f"{len(TASK_TIMINGS)} campaigns, {totals['total']:.0f}s of client wall time "
-             f"({polls} polls, {dtos} dtos)"]
-    for label, value in (("http (+deserialise)", totals["http"]),
-                         ("sleep (poll interval)", totals["sleep"]),
-                         ("handler", totals["handler"]),
-                         ("waited on server", waited)):
-        share = value / totals["total"] * 100 if totals["total"] else 0
-        lines.append(f"  {label:<22} {value:8.0f}s  {share:5.1f}%")
-    lines.append(f"  slowest {slowest} campaigns:")
-    for label, timing in sorted(TASK_TIMINGS, key=lambda kv: -kv[1].total)[:slowest]:
-        lines.append(f"    {timing.total:7.1f}s  {label}")
-    return "\n".join(lines)
-
-
-@cache
-def biocentral_api() -> BiocentralAPI:
-    """The local biocentral server, health-checked once per process."""
-    return BiocentralAPI(local_only=True).wait_until_healthy()
-
-
-class ActiveLearningSimulator(ABC):
-    """Runs simulated campaigns of one type, as set by the subclass."""
-
-    result_cls: ClassVar[type[ActiveLearningSingleSimulationResult]]
-
-    def __init__(self, al_base_config: ActiveLearningFixedBaseConfig):
-        self.base_config = al_base_config
-
-    @abstractmethod
-    def get_simulation_config(self): ...
-
-    @abstractmethod
-    def _campaign_config(
-        self, embedder_name: str, model_type: ActiveLearningModelType, seed: int
-    ): ...
-
-    @abstractmethod
-    def _submit(self, campaign_config, simulation_config): ...
-
-    def _simulation_config_fields(self) -> dict:
-        """Fields every simulation config shares."""
-        # start_ids and n_start are mutually exclusive: a pinned starting set or a random draw.
-        start_ids = self.base_config.start_ids
-        settings = self.base_config.settings
-        return {
-            "simulation_data": self.base_config.simulation_data,
-            "n_start": None if start_ids else settings.n_start,
-            "start_ids": start_ids,
-            "n_suggestions_per_iteration": settings.n_suggestions_per_iteration,
-            "stopping_config": ActiveLearningStoppingConfig(
-                n_max_iterations=settings.n_iterations,
-                max_labels_budget=settings.max_labels_budget,
-                n_hits=settings.stop_at_n_hits,
-                max_consecutive_failures=settings.stop_after_failed_rounds,
-            ),
-        }
-
-    def _campaign_config_fields(
-        self, embedder_name: str, model_type: ActiveLearningModelType, seed: int
-    ) -> dict:
-        """Fields every campaign config shares."""
-        return {
-            "name": "Test",  # TODO
-            "embedder_name": embedder_name,
-            "model_type": model_type,
-            "optimization_mode": self.base_config.optimization_mode,
-            "seed": seed,
-        }
-
-    def run_replicate(
-        self,
-        model_type: ActiveLearningModelType,
-        embedder_name: str,
-        seed: int,
-        show_progress: bool = True,
-    ) -> ActiveLearningSingleSimulationResult:
-        al_campaign_config = self._campaign_config(embedder_name, model_type, seed)
-        al_simulation_config = self.get_simulation_config()
-        task = self._submit(al_campaign_config, al_simulation_config)
-        # Concurrent callers pass show_progress=False: several tqdm bars writing to one
-        # terminal interleave into noise.
-        result = task.run_with_progress() if show_progress else task.run()
-        TASK_TIMINGS.append((
-            f"{self.base_config.dataset_id.name}/{embedder_name}/{model_type.value}"
-            f"/{self.base_config.settings.short_name}/seed{seed}",
-            task.timing,
-        ))
-        if result is None:
-            raise RuntimeError("Simulation failed")
-        if not STORE_PREDICTIONS:
-            for iteration_result in result.iteration_results or []:
-                iteration_result.results = []
-
-        return self.result_cls(
-            dataset_id=self.base_config.dataset_id,
-            split_id=self.base_config.split_id,
-            al_campaign_config=al_campaign_config,
-            al_simulation_config=al_simulation_config,
-            simulation_result=result,
-        )
-
-    def simulate(
-        self,
-        embedder_name: str,
-        model_type: ActiveLearningModelType,
-        n_replicates: int,
-        show_progress: bool = True,
-    ) -> ActiveLearningMultipleSimulationResult:
-        simulation_results = []
-        for replicate_idx in range(n_replicates):
-            if show_progress:
-                print(f"Running replicate {replicate_idx + 1}/{n_replicates}...")
-            seed = self.base_config.settings.first_seed + replicate_idx
-            single_simulation_result = self.run_replicate(
-                model_type=model_type,
-                embedder_name=embedder_name,
-                seed=seed,
-                show_progress=show_progress,
-            )
-            simulation_results.append(single_simulation_result)
-        return ActiveLearningMultipleSimulationResult(simulation_results)
+from .datasets import ALSimulatorDataset
+from .splits import ALSimulatorSplit
 
 
 class ActiveLearningSingleSimulationResult:
@@ -493,7 +163,7 @@ class ActiveLearningSingleSimulationResult:
         Returns a dict keyed by chart name. The 'suggested_labels' key is
         only present for DISCRETE optimization mode.
         """
-        import al_plots
+        from . import plots as al_plots
 
         result = self.simulation_result
         is_discrete = self.al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE
@@ -684,7 +354,7 @@ class ActiveLearningMultipleSimulationResult:
         Returns a dict with keys: 'performance_summary',
         'mean_cumulative_successes', 'mean_metric_evolution'.
         """
-        import al_plots
+        from . import plots as al_plots
 
         is_discrete = self.simulation_results[
                           0].al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE
@@ -784,62 +454,6 @@ class ActiveLearningMultipleSimulationResult:
 
             # Write the JSON with proper formatting
             json.dump(json_results, f, indent=4)
-
-
-class ActiveLearningScreeningSimulator(ActiveLearningSimulator):
-    """Simulates a screening campaign: each round ranks the unlabelled pool and measures
-    the top suggestions."""
-
-    result_cls = ActiveLearningScreeningSingleSimulationResult
-
-    def get_simulation_config(self) -> ActiveLearningScreeningSimulationConfig:
-        return ActiveLearningScreeningSimulationConfig(
-            **self._simulation_config_fields()
-        )
-
-    def _campaign_config(
-        self, embedder_name: str, model_type: ActiveLearningModelType, seed: int
-    ) -> ActiveLearningScreeningCampaignConfig:
-        return ActiveLearningScreeningCampaignConfig(
-            **self._campaign_config_fields(embedder_name, model_type, seed),
-            target_lb=self.base_config.target_lb,
-            target_ub=self.base_config.target_ub,
-            target_value=self.base_config.target_value,
-            discrete_targets=self.base_config.discrete_targets,
-        )
-
-    def _submit(self, campaign_config, simulation_config):
-        return biocentral_api().al_screening_simulation(
-            campaign_config=campaign_config, simulation_config=simulation_config
-        )
-
-
-class ActiveLearningEngineeringSimulator(ActiveLearningSimulator):
-    """Simulates an engineering campaign: each round mutates the wild type and scores
-    candidates drawn from the landscape, so the generator -- and features that only exist
-    on the engineering path, such as delta embeddings -- are exercised end to end."""
-
-    result_cls = ActiveLearningEngineeringSingleSimulationResult
-
-    def get_simulation_config(self) -> ActiveLearningEngineeringSimulationConfig:
-        return ActiveLearningEngineeringSimulationConfig(
-            **self._simulation_config_fields(),
-            n_candidates_per_iteration=self.base_config.settings.n_candidates_per_iteration,
-        )
-
-    def _campaign_config(
-        self, embedder_name: str, model_type: ActiveLearningModelType, seed: int
-    ) -> ActiveLearningEngineeringCampaignConfig:
-        return ActiveLearningEngineeringCampaignConfig(
-            **self._campaign_config_fields(embedder_name, model_type, seed),
-            wildtype_sequence=self.base_config.dataset_id.reference_sequence(),
-            use_delta_embeddings=self.base_config.settings.use_delta_embeddings,
-        )
-
-    def _submit(self, campaign_config, simulation_config):
-        return biocentral_api().al_engineering_simulation(
-            campaign_config=campaign_config, simulation_config=simulation_config
-        )
 
 
 class ActiveLearningSimulationComparer:
