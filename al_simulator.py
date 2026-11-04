@@ -736,17 +736,32 @@ class ActiveLearningMultipleSimulationResult:
     def summary(self) -> dict:
         """Return a small dict of summary values for the dashboard header."""
         first = self.simulation_results[0]
+        is_discrete = (
+            first.al_campaign_config.optimization_mode
+            == ActiveLearningOptimizationMode.DISCRETE
+        )
         return {
             "embedder_name": first.al_campaign_config.embedder_name,
-            "model_type": getattr(first.al_campaign_config.model_type, "value",
-                                  first.al_campaign_config.model_type),
-            "optimization_mode": getattr(first.al_campaign_config.optimization_mode, "value",
-                                         first.al_campaign_config.optimization_mode),
+            "model_type": getattr(
+                first.al_campaign_config.model_type,
+                "value",
+                first.al_campaign_config.model_type,
+            ),
+            "optimization_mode": getattr(
+                first.al_campaign_config.optimization_mode,
+                "value",
+                first.al_campaign_config.optimization_mode,
+            ),
             "n_simulations": len(self.simulation_results),
-            "n_successful": sum(1 for ssr in self.simulation_results if ssr.is_success()),
+            "n_successful": sum(
+                1 for ssr in self.simulation_results if ssr.is_success()
+            ),
             "n_hits_threshold": first.al_simulation_config.stopping_config.n_hits,
-            "is_discrete": first.al_campaign_config.optimization_mode == ActiveLearningOptimizationMode.DISCRETE,
-            "discrete_targets": first.al_campaign_config.discrete_targets,
+            "is_discrete": is_discrete,
+            # Engineering configs have no discrete targets, as they never classify
+            "discrete_targets": (
+                first.al_campaign_config.discrete_targets if is_discrete else None
+            ),
         }
 
     def save(self, path: Path):
