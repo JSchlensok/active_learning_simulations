@@ -240,6 +240,15 @@ def substitutions(sequence: str, reference: str) -> FrozenSet[str]:
     )
 
 
+def design_space(pool: Sequence[SequenceData], reference: str) -> list[str]:
+    """Every substitution in the pool compared to `reference`, sorted by position.
+    """
+    observed = set()
+    for data_point in pool:
+        observed |= substitutions(data_point.seq, reference)
+    return sorted(observed, key=lambda s: (position_of(s), s))
+
+
 def position_of(substitution: str) -> int:
     """1-based position of a substitution string."""
     return int(substitution[1:-1])

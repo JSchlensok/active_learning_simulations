@@ -65,6 +65,15 @@ class EngineeringCampaignSettings(CampaignSettings):
     use_delta_embeddings: bool = Field(
         default=False,
         description="Subtract the wildtype embedding from each variant's (PLM embedders only)")
+    generate_candidates: bool = Field(
+        default=False,
+        description="Build each round's candidates by mutating the variants measured so far, "
+        "restricted to the landscape's own design space",
+    )
+    n_substitutions: int = Field(
+        default=1,
+        description="Substitutions each generated candidate carries against its base sequence",
+    )
 
 
 LOW_THROUGHPUT = CampaignSettings(short_name="low", n_start=10, n_suggestions_per_iteration=5)
