@@ -104,8 +104,15 @@ class ActiveLearningSingleSimulationResult:
 
     def n_measured(self) -> int:
         """Variants the campaign actually had labelled, excluding the starting set."""
-        return sum(len(result.suggestions or [])
-                   for result in (self.simulation_result.iteration_results or []))
+        per_round = self.simulation_result.iteration_results or []
+        if per_round:
+            return sum(len(result.suggestions or []) for result in per_round)
+        # If predictions are dropped, results have no iteration_results -> use round count
+        rounds = len(self.simulation_result.iteration_hits or [])
+        config = self.al_simulation_config
+        measured = rounds * config.n_suggestions_per_iteration
+        budget = config.stopping_config.max_labels_budget
+        return min(measured, budget) if budget is not None else measured
 
     def hit_rate(self) -> Optional[float]:
         """Fraction of measured variants that turned out to be hits.
