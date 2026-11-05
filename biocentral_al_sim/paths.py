@@ -4,7 +4,7 @@ Bump RUN_VERSION to start a fresh set of directories for a new run generation.
 """
 from pathlib import Path
 
-RUN_VERSION = "v1"
+RUN_VERSION = "v2"
 
 RESULTS_DIR = Path(f"simulation_{RUN_VERSION}_results")
 PROJECTIONS_DIR = Path(f"simulation_{RUN_VERSION}_projections")
