@@ -72,7 +72,7 @@ def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
     return pool, assignment.train_ids
 
 
-STORE_PREDICTIONS = False
+STORE_PREDICTIONS = True
 
 TASK_TIMINGS: List[tuple] = []
 
