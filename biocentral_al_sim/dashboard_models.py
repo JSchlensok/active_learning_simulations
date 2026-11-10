@@ -27,24 +27,47 @@ class DashboardSingleSimulationData(BaseModel):
 
 
 class DashboardExperimentData(BaseModel):
-    name: str
-    dataset_id: ALSimulatorDataset
-    embedder: str
-    model: str
-    # Optional so dashboard files written before splits existed still validate
-    split_id: Optional[ALSimulatorSplit] = None
-    summary: dict
-    aggregated_hits: int
-    aggregated_suggestions: int
-    potential_hits: List[str]
-    per_sim_n_hits: List[List[int]]
-    per_sim_metrics_total: List[List[float]]
-    per_sim_metrics_suggestions: List[List[float]]
-    per_sim_is_success: List[bool]
-    # For drill-down
-    single_sims: List[DashboardSingleSimulationData]
+    name: str = Field(..., description="Results file the experiment was read from")
+    dataset_id: ALSimulatorDataset = Field(
+        ..., description="Dataset the simulations ran on"
+    )
+    embedder: str = Field(..., description="Embedder name")
+    model: str = Field(..., description="Surrogate model")
+    split_id: Optional[ALSimulatorSplit] = Field(
+        None,
+        description="Dataset split (None for dashboard files written before splits existed)",
+    )
+    summary: dict = Field(..., description="Summary values for the dashboard header")
+    aggregated_hits: int = Field(..., description="Hits summed over all simulations")
+    aggregated_suggestions: int = Field(
+        ..., description="Suggestions summed over all simulations"
+    )
+    potential_hits: List[str] = Field(
+        ..., description="Ids of the landscape members that count as hits"
+    )
+    per_sim_n_hits: List[List[int]] = Field(
+        ..., description="Number of hits per iteration (one list per simulation)"
+    )
+    per_sim_metrics_total: List[List[float]] = Field(
+        ...,
+        description="Mean metric over all predicted data points per iteration, one list per simulation",
+    )
+    per_sim_metrics_suggestions: List[List[float]] = Field(
+        ...,
+        description="Mean metric over the suggested data points per iteration, one list per simulation",
+    )
+    per_sim_is_success: List[bool] = Field(
+        ..., description="Whether each simulation met its success criteria"
+    )
+    single_sims: List[DashboardSingleSimulationData] = Field(
+        ..., description="Per-simulation data for the drill-down view"
+    )
 
 
 class DashboardCompressedData(BaseModel):
-    run_name: str
-    experiments: List[DashboardExperimentData]
+    run_name: str = Field(
+        ..., description="Name of the simulation run the experiments belong to"
+    )
+    experiments: List[DashboardExperimentData] = Field(
+        ..., description="One entry per results file of the run"
+    )
