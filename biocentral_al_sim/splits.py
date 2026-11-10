@@ -49,6 +49,7 @@ from typing import (
 
 from pydantic import BaseModel, Field, model_validator
 from biotrainer_core.data_classes import SequenceData
+from biocentral_api import Mutation  # reject Mutation from biotrainer-core
 
 
 DEFAULT_SEED = 43
@@ -240,13 +241,15 @@ def substitutions(sequence: str, reference: str) -> FrozenSet[str]:
     )
 
 
-def design_space(pool: Sequence[SequenceData], reference: str) -> list[str]:
-    """Every substitution in the pool compared to `reference`, sorted by position.
-    """
+def design_space(pool: Sequence[SequenceData], reference: str) -> list[Mutation]:
+    """Every substitution in the pool compared to `reference`, sorted by position."""
     observed = set()
     for data_point in pool:
         observed |= substitutions(data_point.seq, reference)
-    return sorted(observed, key=lambda s: (position_of(s), s))
+    return [
+        Mutation(wt=s[0], position=position_of(s), mt=s[-1], one_indexed=True)
+        for s in sorted(observed, key=lambda s: (position_of(s), s))
+    ]
 
 
 def position_of(substitution: str) -> int:
