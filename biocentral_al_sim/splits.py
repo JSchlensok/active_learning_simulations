@@ -246,10 +246,16 @@ def design_space(pool: Sequence[SequenceData], reference: str) -> list[Mutation]
     observed = set()
     for data_point in pool:
         observed |= substitutions(data_point.seq, reference)
-    return [
-        Mutation(wt=s[0], position=position_of(s), mt=s[-1], one_indexed=True)
-        for s in sorted(observed, key=lambda s: (position_of(s), s))
+    mutations = [
+        Mutation(
+            wt=substitution[0],
+            position=position_of(substitution),
+            mt=substitution[-1],
+            one_indexed=True,
+        )
+        for substitution in observed
     ]
+    return sorted(mutations, key=lambda mutation: (mutation.position, mutation.mt))
 
 
 def position_of(substitution: str) -> int:
