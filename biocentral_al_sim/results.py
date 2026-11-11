@@ -124,7 +124,6 @@ class ActiveLearningSingleSimulationResult:
         print(f"Metrics for all masked data points per iteration: {result.iteration_metrics_total}")
         print(f"Metrics for suggested data points per iteration: {result.iteration_metrics_suggestions}")
         print(f"Number of hits over iterations: {list(map(len, result.iteration_hits or []))}")
-        # Empty when predictions were not stored, see STORE_PREDICTIONS
         filtered_results_suggestions = [next((sugg for sugg in res.results if sugg.entity_id in res.suggestions), None)
                                         for res in result.iteration_results or []]
         if any(sugg is not None for sugg in filtered_results_suggestions):

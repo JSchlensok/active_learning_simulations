@@ -72,8 +72,6 @@ def _apply_split(dataset_id: ALSimulatorDataset, split_id: ALSimulatorSplit,
     return pool, assignment.train_ids
 
 
-STORE_PREDICTIONS = True
-
 TASK_TIMINGS: List[tuple] = []
 
 
@@ -177,9 +175,6 @@ class ActiveLearningSimulator(ABC):
         ))
         if result is None:
             raise RuntimeError("Simulation failed")
-        if not STORE_PREDICTIONS:
-            for iteration_result in result.iteration_results or []:
-                iteration_result.results = []
 
         return self.result_cls(
             dataset_id=self.base_config.dataset_id,
