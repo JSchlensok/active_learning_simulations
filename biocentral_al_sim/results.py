@@ -103,9 +103,15 @@ class ActiveLearningSingleSimulationResult:
         return sum(map(len, self.simulation_result.iteration_hits or []))
 
     def n_measured(self) -> int:
-        """Variants the campaign actually had labelled, excluding the starting set."""
-        return sum(len(result.suggestions or [])
-                   for result in (self.simulation_result.iteration_results or []))
+        """Variants the campaign actually had labelled, excluding the starting set.
+
+        Raises:
+            ValueError: If the result has rounds but no iteration results to count.
+        """
+        per_round = self.simulation_result.iteration_results or []
+        if self.simulation_result.iteration_hits and not per_round:
+            raise ValueError("Result has rounds but no iteration results to count")
+        return sum(len(result.suggestions or []) for result in per_round)
 
     def hit_rate(self) -> Optional[float]:
         """Fraction of measured variants that turned out to be hits.
